@@ -1,0 +1,14 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.1+cpu
+torchvision==0.29.1+cpu
+transformers==5.19.0
+sentence-transformers==6.1.0
+huggingface-hub==1.33.0
+fastapi==0.143.0
+uvicorn[standard]==0.54.0
+python-multipart==0.0.32
+numpy==2.5.2
+pandas==3.0.6
+pyarrow==26.0.0
+pillow==12.3.0
+httpx==0.28.1

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WP1 Co-creation · ELEVATE in Amsterdam</title>
+<meta name="description" content="Sixteen hypothetical questions from six stakeholder groups, each traced to the data that could answer it and to what a co-creation workshop must check; a draft indicator list for workshops to re-rank.">
+<link rel="stylesheet" href="assets/site.css">
+<script src="assets/site.js"></script>
+<style>
+  .qgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr)); gap: 1rem; margin-top: 1.4rem; }
+  .qcard { background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 1.3rem 1.35rem 1.2rem; display: flex; flex-direction: column; gap: 0.7rem; transition: border-color 0.2s, transform 0.2s; }
+  .qcard:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .qcard .who { font: 500 0.7rem/1.4 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--amber); }
+  .qcard .q { font: 600 1.32rem/1.25 var(--serif); letter-spacing: -0.01em; margin: 0; }
+  .qcard .row { font: 400 0.86rem/1.45 var(--sans); color: var(--ink-2); }
+  .qcard .row b { display: block; font: 500 0.66rem/1.4 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.1rem; }
+  .qcard .st { margin-top: auto; font: 500 0.7rem/1.35 var(--mono); letter-spacing: 0.04em; padding: 0.45rem 0.6rem; border-radius: 4px; background: var(--accent-soft); color: var(--accent); }
+  .qcard .st.partial { background: #f3ead9; color: var(--amber); }
+  .qcard .st.pipeline { background: #eef0f1; color: var(--muted); }
+  .rank { counter-reset: r; border-top: 1px solid var(--ink); margin-top: 1.4rem; }
+  .rank li { list-style: none; display: grid; grid-template-columns: 3rem minmax(0, 1.3fr) minmax(0, 0.8fr) minmax(0, 1.4fr); gap: 1rem; align-items: baseline; padding: 0.9rem 0; border-bottom: 1px solid var(--rule); }
+  .rank .n { font: 600 1.5rem/1 var(--serif); color: var(--accent); }
+  .rank .ind { font: 600 1.05rem/1.3 var(--serif); }
+  .rank .src { font: 400 0.76rem/1.4 var(--mono); color: var(--muted); }
+  .rank .cant { font: 400 0.88rem/1.4 var(--sans); color: var(--ink-2); }
+  .rank .dim .n, .rank .dim .ind { color: var(--muted); }
+  @media (max-width: 900px) { .rank li { grid-template-columns: 2.4rem minmax(0, 1fr); } .rank .src, .rank .cant { grid-column: 2; } }
+</style>
+</head>
+<body>
+<main>
+  <header class="intro">
+    <div class="label">WP1<span class="sep">·</span>Co-creation and stakeholder engagement <span class="status" data-status="hypothetical">hypothetical</span></div>
+    <h1>Who asks what of the streets?</h1>
+    <p class="lead">No workshop has taken place. These sixteen questions were written by role-playing six stakeholder groups, to show how each would meet the data, and what a workshop must check.</p>
+    <div class="actions"><a class="btn go" href="#questions">The questions ↓</a><a class="btn" href="#ranking">Draft indicator list →</a></div>
+  </header>
+
+  <section class="section" id="questions" style="padding-top:2rem">
+    <div class="label">Sixteen questions</div>
+    <div id="groups"></div>
+    <div class="qgrid" id="qgrid"></div>
+  </section>
+
+  <section class="section" id="ranking">
+    <div class="label">For a workshop to re-rank</div>
+    <h2>A draft indicator list, not a priority.</h2>
+    <p style="margin:0 0 1rem"><a class="btn" href="survey.html#wp1" style="color:var(--accent)">Pick your own top five →</a> <a href="survey.html#results" style="font:500 .8rem var(--sans);margin-left:.6rem">See how others ranked them</a></p>
+    <p class="muted" style="max-width:40rem;font-size:1rem">Ordered by relevance to walking, then by how far the images can be trusted (WP3). Features the model cannot report reliably stay on the list, so a workshop sees what is missing.</p>
+    <ol class="rank" id="rank"></ol>
+  </section>
+
+  <section class="section" style="padding-top:3rem">
+    <div class="label">Details</div>
+    <details class="more"><summary>How a workshop would use this</summary><div class="body"><ul>
+      <li><strong>Before:</strong> the questions become a prompt sheet per group, with the indicators that could answer them.</li>
+      <li><strong>During:</strong> participants re-rank the indicators, add what images cannot show (social safety, noise, lighting at night) and point to places; those places become WP4's walk-along routes.</li>
+      <li><strong>After:</strong> the ranking sets which indicators WP3 computes first and how WP6 ranks gaps.</li></ul></div></details>
+  </section>
+</main>
+
+<script>
+const GROUP = g => /Resident/.test(g) ? "Residents" : /planner/i.test(g) ? "Planners" : /Health/.test(g) ? "Public health" : /Municipal/.test(g) ? "Municipality" : /Landscape|designer/i.test(g) ? "Designers" : "Civic groups";
+const LINK = q => /environments go with/i.test(q) ? "wp5.html" : /similar/i.test(q) ? "wp3.html#ask" : /look like/i.test(q) ? "wp6.html" : /reports/i.test(q) ? "wp4.html" : /crossing|invest|cycling infra/i.test(q) ? "wp6.html"
+  : /walking|green do people/i.test(q) ? "wp2.html" : /low-income|as good/i.test(q) ? "wp5.html" : /reliable|images not/i.test(q) ? "wp3.html" : /privacy|lawful|updated/i.test(q) ? "wp7.html" : "wp3.html";
+
+document.addEventListener("DOMContentLoaded", async () => {
+  const [m, l] = await Promise.all([getJSON("data/tables/wp1_stakeholder_matrix.json"), getJSON("data/tables/wp1_indicator_longlist.json")]);
+  const grid = document.getElementById("qgrid");
+  function draw(g) {
+    grid.innerHTML = m.filter(r => g === "all" || GROUP(r.stakeholder_group) === g).map(r => {
+      const st = r.status_in_demo, cls = /^partial|warning/.test(st) ? "partial" : /pipeline/.test(st) ? "pipeline" : "";
+      return `<article class="qcard"><div class="who">${esc(r.stakeholder_group)}</div><p class="q">“${esc(r.question)}”</p>
+        <div class="row"><b>Answered with</b>${esc(r.indicators_and_data)}</div>
+        <div class="row"><b>A workshop must check</b>${esc(r.to_validate_in_workshop)}</div>
+        <a class="st ${cls}" href="${LINK(r.question)}" style="text-decoration:none">${esc(st)} →</a></article>`;
+    }).join("");
+  }
+  const groups = ["Residents", "Planners", "Public health", "Municipality", "Designers", "Civic groups"];
+  seg(document.getElementById("groups"), [["all", `All ${m.length}`], ...groups.map(g => [g, `${g} ${m.filter(r => GROUP(r.stakeholder_group) === g).length}`])], "all", draw);
+  draw("all");
+  document.getElementById("rank").innerHTML = l.map(r => `<li class="${/tier C|rare/.test(r.source) ? "dim" : ""}"><span class="n">${r.draft_rank}</span>
+    <span class="ind">${esc(r.indicator)}</span><span class="src">${esc(r.source)}${r.presence_kappa_or_check && r.presence_kappa_or_check !== "-" ? ` · ${esc(r.presence_kappa_or_check)}` : ""}</span>
+    <span class="cant">${esc(r.what_it_cannot_show)}</span></li>`).join("");
+});
+</script>
+</body>
+</html>

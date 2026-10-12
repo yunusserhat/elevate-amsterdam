@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ask the images · ELEVATE in Amsterdam</title>
+<meta name="description" content="Search 99,100 street views of Amsterdam's 2025 panoramas by describing a street or uploading a photo; each view is matched on its image and an open model's observations.">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="assets/site.css">
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="assets/site.js"></script>
+<style>
+  body { background: var(--night); }
+  .srv { display: inline-flex; align-items: center; gap: 0.55rem; font: 500 0.7rem/1.4 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--night-muted); margin: 0 0 1.2rem; }
+  .srv i { width: 0.6rem; height: 0.6rem; border-radius: 50%; background: var(--amber-glow); animation: pulse 1.4s ease-in-out infinite; }
+  .srv.ready i { background: var(--glow); animation: none; }
+  .srv.down i { background: #e0605a; animation: none; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .how { background: var(--paper); color: var(--ink); }
+  .how .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-top: 1.4rem; }
+  .how .tile .n { font: 600 2.2rem/1 var(--serif); color: var(--accent); margin-bottom: 0.5rem; }
+  @media (max-width: 900px) { .how .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <section class="ask" id="ask" data-night-top>
+    <div class="wrap">
+      <div class="left">
+        <div class="label">Ask the images<span class="sep">·</span>WP3 search index <span class="status">real data</span></div>
+        <h2>Ask the images.</h2>
+        <p class="sub">Describe a street, or upload a photo. Every one of Amsterdam's 99,100 street views is matched on its image and an open model's observations.</p>
+        <div class="srv" id="srv" role="status"><i></i><span id="srvtext">Connecting to the search server…</span></div>
+        <form id="search" role="search"><input id="q" type="search" placeholder="a bench under trees by a canal" aria-label="Describe a street" maxlength="300" minlength="2" required><button type="submit">Search</button></form>
+        <div class="chips" id="examples"></div>
+        <label class="upload"><input type="file" id="photo" accept="image/*">↑ Or find streets like your own photo</label>
+        <div class="gallery" id="gallery" aria-live="polite"></div>
+        <p class="note">Images load from the City's server (Gemeente Amsterdam, CC BY 4.0). Observations are model output (Qwen3.5-4B), not measurements. Search: EmbeddingGemma 2 on a CPU. Uploaded photos are not stored.</p>
+      </div>
+      <div class="right"><div id="askmap" class="map" role="region" aria-label="Map of the results"></div><div class="detail" id="detail"></div></div>
+    </div>
+  </section>
+
+  <section class="how">
+    <div class="section" style="padding-bottom:5rem">
+      <div class="label">How it works</div>
+      <h2>Nothing is generated: every answer is a real view.</h2>
+      <div class="grid">
+        <div class="tile"><div class="n">99,100</div><h3>Street views</h3><p>Four per panorama of the City's 2025 drive, each read for nineteen features by an open model. <a href="wp3.html">How, in WP3 →</a></p></div>
+        <div class="tile"><div class="n">1 vector</div><h3>Image and words together</h3><p>Each view's image and the model's observations are embedded together by EmbeddingGemma 2, as 256 numbers.</p></div>
+        <div class="tile"><div class="n">12</div><h3>Closest views</h3><p>Your words or photo are embedded the same way and compared with every view; the twelve closest are shown, with links to the City's images.</p></div>
+      </div>
+      <p class="muted" style="max-width:44rem;font-size:1rem;margin-top:1.6rem">Similarity is not a measurement: a high score means the view resembles the description as the model saw it. Footways and park paths are rarely in the images, because the camera rides on the road.</p>
+    </div>
+  </section>
+</main>
+
+<script>
+const EXAMPLES = ["a bench under trees by a canal", "red separated cycle track", "parked bicycles blocking the sidewalk", "construction fence on the sidewalk", "wide sidewalk with shops", "zebra crossing at a junction"];
+
+document.addEventListener("DOMContentLoaded", () => {
+  const askmap = baseMap("askmap", { zoom: 12, center: [52.365, 4.895], dark: true });
+  const marks = L.layerGroup().addTo(askmap);
+  const gallery = document.getElementById("gallery"), detail = document.getElementById("detail");
+  const srv = document.getElementById("srv"), srvtext = document.getElementById("srvtext");
+  document.getElementById("examples").innerHTML = EXAMPLES.map(e => `<button class="chip" type="button">${esc(e)}</button>`).join("");
+  let rows = [], ready = false, pending = null;
+
+  function render(list, title) {
+    rows = list; marks.clearLayers(); detail.classList.remove("on");
+    if (!list.length) { gallery.innerHTML = `<p class="error">No views found.</p>`; return; }
+    gallery.innerHTML = `<div class="caption" style="grid-column:1/-1;color:#9cadb5">${esc(title)}</div>` + list.map((r, i) => `
+      <button class="shot" type="button" data-i="${i}"><img src="${esc(r.city_image)}" alt="${esc(r.view)} view, ${esc(r.buurtnaam)}" loading="lazy">
+      <div class="meta"><span>${esc(r.buurtnaam)}</span><b>${fmt(r.similarity, 2)}</b></div>
+      <p>${esc(r.observation_text.replace(/^Present: /, ""))}</p></button>`).join("");
+    list.forEach((r, i) => L.circleMarker([r.lat, r.lon], { radius: 7, color: "#0a0f12", weight: 2, fillColor: "#63d6c4", fillOpacity: 1 })
+      .addTo(marks).on("click", () => pick(i, false)));
+    askmap.flyToBounds(L.latLngBounds(list.map(r => [r.lat, r.lon])).pad(0.3), { maxZoom: 15, duration: 0.8 });
+    gallery.querySelectorAll(".shot").forEach(b => b.addEventListener("click", () => pick(+b.dataset.i, true)));
+  }
+  function pick(i, fly) {
+    const r = rows[i];
+    gallery.querySelectorAll(".shot").forEach(b => b.classList.toggle("active", +b.dataset.i === i));
+    marks.getLayers().forEach((m, k) => m.setStyle({ fillColor: k === i ? "#ffb547" : "#63d6c4", radius: k === i ? 10 : 7 }));
+    if (fly) askmap.flyTo([r.lat, r.lon], 17, { duration: 0.8 });
+    detail.innerHTML = `<div class="caption" style="color:#9cadb5">${esc(r.buurtnaam)} · ${esc(r.view)} view · similarity ${fmt(r.similarity, 2)}</div><p style="margin:.4rem 0 0">${esc(r.observation_text)}</p><div class="links">${cityLinks(r)}</div>`;
+    detail.classList.add("on");
+    if (!fly) gallery.querySelector(`.shot[data-i="${i}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+  async function run(q) {
+    if (!ready) { pending = q; gallery.innerHTML = `<p class="loading" style="color:#9cadb5">The search server is still waking up; your search will run as soon as it is ready.</p>`; return; }
+    gallery.innerHTML = `<p class="loading" style="color:#9cadb5">Searching 99,100 views…</p>`;
+    try { const d = await getJSON(api(`/api/search?q=${encodeURIComponent(q)}&k=12`)); render(d.results, `Top ${d.results.length} for “${q}”`); }
+    catch (e) { gallery.innerHTML = `<p class="error">Search failed (${esc(e.message)}). Try again in a moment.</p>`; }
+  }
+  const qbox = document.getElementById("q");
+  document.getElementById("search").addEventListener("submit", e => { e.preventDefault(); const q = qbox.value.trim(); if (q.length > 1) run(q); });
+  document.querySelectorAll("#examples .chip").forEach(b => b.addEventListener("click", () => { qbox.value = b.textContent; run(b.textContent); }));
+  document.getElementById("photo").addEventListener("change", async e => {
+    const f = e.target.files[0]; if (!f) return;
+    if (f.size > 8 * 1024 * 1024) { gallery.innerHTML = `<p class="error">The photo is larger than 8 MB.</p>`; return; }
+    gallery.innerHTML = `<p class="loading" style="color:#9cadb5">Comparing your photo with 99,100 views…</p>`;
+    const fd = new FormData(); fd.append("file", f);
+    try {
+      const r = await fetch(api("/api/similar?k=12"), { method: "POST", body: fd });
+      if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+      render((await r.json()).results, "Most similar views to your photo (not stored)");
+    } catch (err) { gallery.innerHTML = `<p class="error">${esc(err.message)}</p>`; }
+    e.target.value = "";
+  });
+
+  // the server sleeps when idle: show its state and run the first search once it is up
+  const q0 = new URLSearchParams(location.search).get("q");
+  if (q0) qbox.value = q0;
+  pending = q0 || EXAMPLES[0];
+  const t0 = Date.now();
+  (async function poll() {
+    const h = await wakeAPI();
+    if (h && h.model_loaded) {
+      ready = true; srv.className = "srv ready"; srvtext.textContent = "Search ready";
+      if (pending) { if (!q0 && !qbox.value) qbox.value = pending; const q = pending; pending = null; run(q); }
+      return;
+    }
+    const waited = (Date.now() - t0) / 1000;
+    if (waited > 300) { srv.className = "srv down"; srvtext.textContent = "The search server is not reachable right now. Please try again later."; return; }
+    srvtext.textContent = h ? "Loading the search model…" : waited < 8 ? "Connecting to the search server…" : "Waking the search server: after a quiet spell this takes up to a few minutes";
+    setTimeout(poll, 2500);
+  })();
+});
+</script>
+</body>
+</html>

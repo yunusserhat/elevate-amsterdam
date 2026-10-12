@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Take part · ELEVATE in Amsterdam</title>
+<meta name="description" content="A pilot of the data-collection layer: react to AI-edited street pictures, compare Amsterdam streets, and rank what should be measured. Anonymous; results are shown as aggregates only.">
+<link rel="stylesheet" href="assets/site.css">
+<script src="assets/site.js"></script>
+<style>
+  .consent { background: var(--card); border: 1px solid var(--rule); border-radius: 8px; padding: 1.4rem 1.5rem; max-width: 46rem; }
+  .consent ul { margin: 0.4rem 0 1rem; padding-left: 1.1rem; font: 400 0.95rem/1.5 var(--sans); color: var(--ink-2); }
+  .consent .q { font: 500 0.72rem/1.4 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 1rem 0 0.45rem; }
+  .consent label.agree { display: flex; gap: 0.6rem; align-items: flex-start; font: 500 1rem/1.4 var(--sans); margin-top: 1.1rem; cursor: pointer; }
+  .consent label.agree input { width: 1.15rem; height: 1.15rem; margin-top: 0.15rem; accent-color: var(--accent); }
+  .task { display: none; margin-top: 1.6rem; }
+  .task.on { display: block; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  .pair figure { margin: 0; position: relative; border-radius: 6px; overflow: hidden; background: var(--night-2); border: 3px solid transparent; transition: border-color 0.2s; }
+  .pair figure img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; }
+  .pair figure .ab { position: absolute; top: 0.6rem; left: 0.6rem; font: 600 0.8rem/1 var(--mono); letter-spacing: 0.1em; color: #fff; background: rgba(10, 15, 18, 0.7); padding: 0.4rem 0.55rem; border-radius: 3px; }
+  .pair figure.edited { border-color: var(--amber); }
+  .pair figure .tag { position: absolute; left: 0; right: 0; bottom: 0; font: 500 0.78rem/1.3 var(--sans); color: #fff; background: rgba(168, 93, 0, 0.92); padding: 0.45rem 0.7rem; display: none; }
+  .pair figure.edited .tag { display: block; }
+  .ask-q { font: 600 1.35rem/1.25 var(--serif); margin: 0.4rem 0 0.8rem; }
+  .choices { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .choices button { font: 500 0.9rem/1 var(--sans); padding: 0.85rem 1.2rem; border-radius: 999px; border: 1px solid var(--rule); background: var(--card); color: var(--ink); cursor: pointer; }
+  .choices button:hover { border-color: var(--accent); color: var(--accent); }
+  .choices button.main { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .scale { display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }
+  .scale button { width: 3rem; height: 3rem; border-radius: 50%; border: 1px solid var(--rule); background: var(--card); font: 600 1rem var(--sans); cursor: pointer; }
+  .scale button:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .scale .ends { font: 400 0.8rem var(--sans); color: var(--muted); }
+  .progress { font: 500 0.74rem/1 var(--mono); letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
+  .pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 0.6rem; margin: 1rem 0; }
+  .pick button { text-align: left; font: 500 0.95rem/1.3 var(--sans); padding: 0.85rem 1rem 0.85rem 3rem; border-radius: 8px; border: 1px solid var(--rule); background: var(--card); color: var(--ink); cursor: pointer; position: relative; min-height: 3.4rem; }
+  .pick button .n { position: absolute; left: 0.8rem; top: 50%; transform: translateY(-50%); width: 1.6rem; height: 1.6rem; border-radius: 50%; border: 1px solid var(--rule); display: grid; place-items: center; font: 600 0.8rem var(--mono); color: var(--muted); }
+  .pick button.on { border-color: var(--accent); background: var(--accent-soft); }
+  .pick button.on .n { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .done { background: var(--accent-soft); border-radius: 8px; padding: 1rem 1.2rem; font: 400 1rem/1.5 var(--sans); }
+  .res { display: grid; grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); gap: 1rem; margin-top: 1.2rem; }
+  .bars .row { display: grid; grid-template-columns: 7.5rem 1fr 3rem; gap: 0.6rem; align-items: center; font: 400 0.86rem var(--sans); margin: 0.35rem 0; }
+  .bars .track { height: 0.9rem; background: #e3e8ea; border-radius: 2px; overflow: hidden; display: flex; }
+  .bars .track span { display: block; height: 100%; }
+  .thumbs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.35rem; margin-top: 0.5rem; }
+  .thumbs img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 3px; }
+  .notice { font: 400 0.9rem/1.5 var(--sans); color: var(--amber); }
+  @media (max-width: 700px) { .pair { grid-template-columns: 1fr; } .thumbs { grid-template-columns: repeat(3, 1fr); } }
+</style>
+</head>
+<body>
+<main>
+  <header class="intro">
+    <div class="label">Take part<span class="sep">·</span>pilot of the data-collection layer <span class="status" data-status="idea">pilot</span></div>
+    <h1>Your view of Amsterdam's streets.</h1>
+    <p class="lead">Three short tasks: react to AI-edited street pictures (WP6), compare streets (WP3) and pick what should be measured first (WP1). A few minutes each, in any order.</p>
+  </header>
+
+  <section class="section" style="padding-top:0" id="start">
+    <div class="consent" id="consent">
+      <div class="label" style="margin-bottom:.6rem">Before you start</div>
+      <ul>
+        <li>This is a pilot that shows how a project like ELEVATE could gather residents' views. It is not a research study, and answers will not be used as findings without an ethics-approved study.</li>
+        <li>It is anonymous: no name, e-mail or free text, and no IP address in the survey database. Your browser makes a random session number.</li>
+        <li>Answers go through this site's server into a PostgreSQL database (Supabase, EU). Nobody can read single answers through the site; results are published as totals only.</li>
+        <li>Your internet address is kept in memory for one minute to slow down floods of answers, and is never stored.</li>
+        <li>You can stop at any time; nothing is saved until you answer.</li>
+      </ul>
+      <div class="q">You are (optional)</div><div id="role"></div>
+      <div class="q">Amsterdam is where you (optional)</div><div id="ams"></div>
+      <label class="agree"><input type="checkbox" id="agree"> I have read this and want to take part.</label>
+      <div class="choices" style="margin-top:1rem"><button class="main" id="go" type="button" disabled>Start</button></div>
+      <p class="notice" id="cerr" style="display:none"></p>
+    </div>
+
+    <div id="tasks" style="display:none">
+      <div id="taskseg"></div>
+
+      <div class="task" data-task="wp6">
+        <div class="progress" id="p6"></div>
+        <p class="ask-q" id="q6">Which street would you rather walk along?</p>
+        <div class="pair" id="pair6"></div>
+        <div id="a6"></div>
+      </div>
+
+      <div class="task" data-task="wp3">
+        <div class="progress" id="p3"></div>
+        <p class="ask-q" id="q3"></p>
+        <div class="pair" id="pair3"></div>
+        <div class="choices" id="a3"></div>
+      </div>
+
+      <div class="task" data-task="wp1">
+        <p class="ask-q">Tap the five things you would most want measured on your streets, most important first.</p>
+        <div class="pick" id="pick"></div>
+        <div class="choices"><button class="main" id="send1" type="button" disabled>Send my top five</button><button id="reset1" type="button">Start again</button></div>
+        <div id="d1"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="results">
+    <div class="label">Results so far</div>
+    <h2>Totals, straight from the database.</h2>
+    <p class="muted" style="max-width:42rem;font-size:1rem" id="overview">Loading…</p>
+    <div class="res">
+      <div class="tile"><h3>WP6 · Edited or photo?</h3><p>Share of answers preferring the AI-edited street, by what was added; mean realism of the edit (1–5).</p><div class="bars" id="r6"></div></div>
+      <div class="tile"><h3>WP1 · What to measure first</h3><p>Points for each indicator in people's top fives (5 for first, 1 for fifth).</p><div id="r1seg" style="margin:.4rem 0"></div><div class="bars" id="r1"></div></div>
+      <div class="tile"><h3>WP3 · Streets that look more pleasant</h3><p>Views with the highest share of wins, once compared at least three times.</p><div class="thumbs" id="r3"></div></div>
+    </div>
+    <p class="caption" style="margin-top:1rem">Pilot data, not findings. Database design: <a href="data/survey/schema.sql">schema.sql</a> (tables, row-level security, constraints, aggregate functions). Inspired by SP-Survey (Urban Analytics Lab, NUS).</p>
+  </section>
+</main>
+
+<script>
+const ROLES = [["resident", "Resident"], ["planner", "Planner"], ["public_health", "Public health"], ["municipality", "Municipality"], ["designer", "Designer"], ["civic", "Civic group"], ["researcher", "Researcher"], ["other", "Other"]];
+const AMS = [["lives", "live"], ["works", "work or study"], ["visits", "visit"], ["no", "none of these"]];
+const ADDED = { crossing: "a marked crossing", trees: "street trees", seating: "benches", greenery: "planters and greenery", cycle: "a cycle track" };
+const Q3 = { pleasant: "Which street looks more pleasant to walk along?", safe: "Which street looks safer to walk in?" };
+const N6 = 8, N3 = 12;
+
+// Every answer goes to this site's API (app/survey.py), never straight to the database: the browser
+// holds no database key. The API checks the answer and writes it; results come back as totals.
+const db = {
+  ready: false,
+  async insert(kind, row) {
+    const r = await fetch(api(`/api/survey/${kind}`), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(row) });
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(typeof e.detail === "string" ? e.detail : r.statusText); }
+  },
+  results: role => getJSON(api(`/api/survey/results${role ? `?role=${encodeURIComponent(role)}` : ""}`)),
+};
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const store = { get(k) { try { return sessionStorage.getItem(k); } catch { return null; } }, set(k, v) { try { sessionStorage.setItem(k, v); } catch { /* private mode */ } } };
+
+document.addEventListener("DOMContentLoaded", async () => {
+  let role = null, ams = null, session = store.get("elevate-survey-session");
+  seg(document.getElementById("role"), ROLES, null, v => { role = v; });
+  seg(document.getElementById("ams"), AMS, null, v => { ams = v; });
+  const go = document.getElementById("go"), agree = document.getElementById("agree"), cerr = document.getElementById("cerr");
+  // the server sleeps when idle: wait for it before the visitor can start
+  const t0 = Date.now();
+  cerr.style.display = "block"; cerr.textContent = "Connecting to the survey server…";
+  agree.addEventListener("change", () => { go.disabled = !(agree.checked && db.ready); });
+  async function waitForServer() {
+    try { await db.results(); }
+    catch (e) {
+      const waited = (Date.now() - t0) / 1000;
+      if (waited > 300) { cerr.textContent = "The survey server is not reachable right now. Please try again later."; return; }
+      cerr.textContent = waited < 8 ? "Connecting to the survey server…" : "Waking the survey server: after a quiet spell this takes up to a few minutes.";
+      setTimeout(waitForServer, 3000);
+      return;
+    }
+    db.ready = true; cerr.style.display = "none"; go.disabled = !agree.checked; loadResults();
+  }
+
+  const [pairs, views, inds] = await Promise.all([getJSON("data/tables/wp6_edit_verification.json"), getJSON("data/survey/wp3_views.json"), getJSON("data/tables/wp1_indicator_longlist.json")]);
+  const showTasks = () => { document.getElementById("consent").style.display = "none"; document.getElementById("tasks").style.display = "block"; };
+  if (session) showTasks();
+  go.addEventListener("click", async () => {
+    go.disabled = true;
+    const id = (crypto.randomUUID ? crypto.randomUUID() : ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)));
+    try {
+      await db.insert("session", { id, consent: true, role, amsterdam: ams, client: new URLSearchParams(location.search).has("test") ? "test" : "elevate-site-1" });
+      session = id; store.set("elevate-survey-session", id); showTasks();
+    } catch (e) { cerr.style.display = "block"; cerr.textContent = `Could not start (${e.message}). Please try again.`; go.disabled = false; }
+  });
+
+  // task switcher
+  const tasks = [...document.querySelectorAll(".task")];
+  const show = t => tasks.forEach(x => x.classList.toggle("on", x.dataset.task === t));
+  const hash = (location.hash || "").replace("#", "");
+  const first = ["wp6", "wp3", "wp1"].includes(hash) ? hash : "wp6";
+  seg(document.getElementById("taskseg"), [["wp6", "Pictures · WP6"], ["wp3", "Streets · WP3"], ["wp1", "Priorities · WP1"]], first, show);
+  show(first);
+
+  // WP6: photo or AI-edited street, then realism of the edit
+  let q6 = shuffle(pairs.slice()).slice(0, N6), i6 = 0, t6 = 0, cur6 = null;
+  const pair6 = document.getElementById("pair6"), a6 = document.getElementById("a6");
+  function next6() {
+    if (i6 >= q6.length) { pair6.innerHTML = ""; a6.innerHTML = `<div class="done">Thank you: ${q6.length} pictures rated. <a href="#results">See the results so far</a>, or <a href="#" id="more6">rate ${N6} more</a>.</div>`; document.getElementById("more6").onclick = e => { e.preventDefault(); q6 = shuffle(pairs.slice()).slice(0, N6); i6 = 0; next6(); }; document.getElementById("p6").textContent = ""; loadResults(); return; }
+    const p = q6[i6], editedLeft = Math.random() < 0.5;
+    const src = s => `data/wp6_pairs/${encodeURIComponent(p.image_id)}__${s}.jpg`;
+    const imgs = editedLeft ? [src(`${p.gap_type}__after`), src("before")] : [src("before"), src(`${p.gap_type}__after`)];
+    cur6 = { p, edited_side: editedLeft ? "left" : "right" };
+    document.getElementById("p6").textContent = `${i6 + 1} / ${q6.length}`;
+    pair6.innerHTML = imgs.map((s, k) => `<figure data-side="${k ? "right" : "left"}"><img src="${s}" alt="Street picture ${k ? "B" : "A"}"><span class="ab">${k ? "B" : "A"}</span><span class="tag">AI-edited: ${esc(ADDED[p.gap_type])} added</span></figure>`).join("");
+    a6.innerHTML = `<div class="choices"><button type="button" data-c="left">Picture A</button><button type="button" data-c="right">Picture B</button><button type="button" data-c="none">No difference</button></div>`;
+    t6 = performance.now();
+    a6.querySelectorAll("button").forEach(b => b.onclick = () => reveal6(b.dataset.c));
+  }
+  function reveal6(choice) {
+    const rt = Math.round(performance.now() - t6);
+    pair6.querySelector(`figure[data-side="${cur6.edited_side}"]`).classList.add("edited");
+    document.getElementById("q6").textContent = "How realistic does the AI-edited picture look?";
+    a6.innerHTML = `<div class="scale"><span class="ends">not at all</span>${[1, 2, 3, 4, 5].map(n => `<button type="button" data-r="${n}">${n}</button>`).join("")}<span class="ends">completely</span></div><div class="choices" style="margin-top:.6rem"><button type="button" data-r="">Skip</button></div>`;
+    a6.querySelectorAll("button").forEach(b => b.onclick = async () => {
+      const row = { session_id: session, image_id: cur6.p.image_id, gap_type: cur6.p.gap_type, edited_side: cur6.edited_side, choice, realism: b.dataset.r ? +b.dataset.r : null, rt_ms: rt };
+      a6.innerHTML = `<p class="loading">Saving…</p>`;
+      try { await db.insert("wp6", row); i6++; document.getElementById("q6").textContent = "Which street would you rather walk along?"; next6(); }
+      catch (e) { a6.innerHTML = `<p class="notice">Could not save (${esc(e.message)}).</p>`; }
+    });
+  }
+  next6();
+
+  // WP3: which street looks more pleasant / safer
+  const pair3 = document.getElementById("pair3"), a3 = document.getElementById("a3");
+  let i3 = 0, t3 = 0, cur3 = null;
+  function next3() {
+    if (i3 >= N3) { pair3.innerHTML = ""; a3.innerHTML = `<div class="done">Thank you: ${N3} comparisons. <a href="#results">See the results so far</a>, or <a href="#" id="more3">compare ${N3} more</a>.</div>`; document.getElementById("more3").onclick = e => { e.preventDefault(); i3 = 0; next3(); }; document.getElementById("p3").textContent = ""; document.getElementById("q3").textContent = ""; loadResults(); return; }
+    const [l, r] = shuffle(views.slice()).slice(0, 2), q = Math.random() < 0.5 ? "pleasant" : "safe";
+    cur3 = { l, r, q };
+    document.getElementById("p3").textContent = `${i3 + 1} / ${N3}`;
+    document.getElementById("q3").textContent = Q3[q];
+    pair3.innerHTML = [l, r].map((v, k) => `<figure><img src="${esc(v.img)}" alt="Street in ${esc(v.buurt)}"><span class="ab">${k ? "B" : "A"}</span></figure>`).join("");
+    a3.innerHTML = `<button type="button" data-c="left">Street A</button><button type="button" data-c="right">Street B</button><button type="button" data-c="equal">Can't tell</button>`;
+    t3 = performance.now();
+    a3.querySelectorAll("button").forEach(b => b.onclick = async () => {
+      const row = { session_id: session, question: cur3.q, left_id: cur3.l.id, right_id: cur3.r.id, choice: b.dataset.c, rt_ms: Math.round(performance.now() - t3) };
+      a3.innerHTML = `<p class="loading">Saving…</p>`;
+      try { await db.insert("wp3", row); i3++; next3(); } catch (e) { a3.innerHTML = `<p class="notice">Could not save (${esc(e.message)}).</p>`; }
+    });
+  }
+  next3();
+
+  // WP1: top five of the draft indicator list
+  const pick = document.getElementById("pick"), send1 = document.getElementById("send1"), d1 = document.getElementById("d1");
+  let chosen = [];
+  function draw1() {
+    pick.innerHTML = inds.map(r => { const k = chosen.indexOf(r.draft_rank); return `<button type="button" class="${k >= 0 ? "on" : ""}" data-id="${r.draft_rank}"><span class="n">${k >= 0 ? k + 1 : ""}</span>${esc(r.indicator)}</button>`; }).join("");
+    pick.querySelectorAll("button").forEach(b => b.onclick = () => { const id = +b.dataset.id, k = chosen.indexOf(id); if (k >= 0) chosen.splice(k, 1); else if (chosen.length < 5) chosen.push(id); draw1(); });
+    send1.disabled = chosen.length !== 5;
+  }
+  document.getElementById("reset1").onclick = () => { chosen = []; d1.innerHTML = ""; draw1(); };
+  send1.onclick = async () => {
+    send1.disabled = true;
+    try { await db.insert("wp1", { session_id: session, top_five: chosen }); d1.innerHTML = `<div class="done" style="margin-top:1rem">Thank you. <a href="#results">See how others ranked them</a>.</div>`; chosen = []; draw1(); loadResults(); }
+    catch (e) { d1.innerHTML = `<p class="notice">Could not save (${esc(e.message)}).</p>`; send1.disabled = false; }
+  };
+  draw1();
+
+  // results, from the aggregate functions only
+  let r1role = "all";
+  seg(document.getElementById("r1seg"), [["all", "All"], ...ROLES.slice(0, 6)], "all", v => { r1role = v; loadResults(); });
+  async function loadResults() {
+    if (!db.ready) return;
+    try {
+      const res = await db.results(r1role === "all" ? null : r1role);
+      const o = res.overview, s6 = res.wp6, s1 = res.wp1, s3 = res.wp3;
+      document.getElementById("overview").textContent = `${o.sessions} participant session${o.sessions === 1 ? "" : "s"} so far: ${o.wp6_answers} picture answers, ${o.wp3_answers} street comparisons, ${o.wp1_rankings} rankings.`;
+      const by = {};
+      s6.forEach(r => { const g = by[r.gap_type] || (by[r.gap_type] = { n: 0, e: 0, p: 0, none: 0, rs: 0, rn: 0 }); g.n += +r.n; g.e += +r.prefer_edited; g.p += +r.prefer_photo; g.none += +r.no_preference; if (r.realism_mean !== null) { g.rs += r.realism_mean * r.realism_n; g.rn += +r.realism_n; } });
+      document.getElementById("r6").innerHTML = Object.keys(ADDED).map(k => { const g = by[k]; if (!g || !g.n) return `<div class="row"><span>${esc(ADDED[k])}</span><span class="caption">no answers yet</span><span></span></div>`;
+        return `<div class="row"><span>${esc(ADDED[k])}</span><span class="track"><span style="width:${100 * g.e / g.n}%;background:#0d6b63"></span><span style="width:${100 * g.none / g.n}%;background:#b9c3c7"></span><span style="width:${100 * g.p / g.n}%;background:#a85d00"></span></span><span class="mono">${g.rn ? (g.rs / g.rn).toFixed(1) : "–"}</span></div>`; }).join("")
+        + `<p class="caption" style="margin-top:.6rem"><span style="color:#0d6b63">■</span> edited · <span style="color:#9aa3aa">■</span> no difference · <span style="color:#a85d00">■</span> photo · right: realism</p>`;
+      const max1 = Math.max(1, ...s1.map(r => +r.borda));
+      document.getElementById("r1").innerHTML = s1.some(r => +r.borda > 0) ? s1.filter(r => +r.borda > 0).slice(0, 8).map(r => `<div class="row"><span>${esc(r.indicator)}</span><span class="track"><span style="width:${100 * r.borda / max1}%;background:#0d6b63"></span></span><span class="mono">${r.borda}</span></div>`).join("") : `<p class="caption">No rankings yet${r1role !== "all" ? " for this group" : ""}.</p>`;
+      const top = s3.filter(r => r.question === "pleasant" && +r.comparisons >= 3).sort((a, b) => b.win_rate - a.win_rate).slice(0, 5);
+      const vmap = Object.fromEntries(views.map(v => [v.id, v]));
+      document.getElementById("r3").innerHTML = top.length ? top.map(r => `<img src="${esc(vmap[r.image_id]?.img || "")}" alt="${esc(vmap[r.image_id]?.buurt || "")}" title="${esc(vmap[r.image_id]?.buurt || "")}: ${Math.round(100 * r.win_rate)}% of ${r.comparisons}">`).join("") : `<p class="caption" style="grid-column:1/-1">Not enough comparisons yet.</p>`;
+    } catch (e) { document.getElementById("overview").textContent = `Results could not be loaded (${e.message}).`; }
+  }
+  waitForServer();
+});
+</script>
+</body>
+</html>

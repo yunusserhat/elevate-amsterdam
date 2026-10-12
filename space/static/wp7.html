@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WP7 Open science · ELEVATE in Amsterdam</title>
+<meta name="description" content="What this demonstration rests on: data sources, models and licences, what is shared and what is not, provenance and known limits.">
+<link rel="stylesheet" href="assets/site.css">
+<script src="assets/site.js"></script>
+<style>
+  .src { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: 0.9rem; margin-top: 1.2rem; }
+  .src .tile { display: flex; flex-direction: column; gap: 0.35rem; }
+  .src .kind { font: 500 0.66rem/1.3 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  .src .lic { margin-top: auto; font: 500 0.72rem/1.3 var(--mono); color: var(--accent); }
+  .src .lic.nc { color: var(--amber); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.2rem; }
+  .two .tile h3 { display: flex; align-items: center; gap: 0.5rem; }
+  .two ul { margin: 0; padding-left: 1.1rem; font: 400 0.95rem/1.5 var(--sans); color: var(--ink-2); }
+  .two li { margin-bottom: 0.4rem; }
+  @media (max-width: 900px) { .two { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <header class="intro">
+    <div class="label">WP7<span class="sep">·</span>Dissemination and open science <span class="status">documentation</span></div>
+    <h1>Open sources, stated limits.</h1>
+    <p class="lead">The protocol commits to open access, FAIR data and a public story map. This site is a small version of the last; here is what it rests on.</p>
+    <div class="actions"><a class="btn go" href="#sources">Sources and licences ↓</a></div>
+  </header>
+
+  <section class="section" style="padding-top:1rem">
+    <div class="label">What is shared</div>
+    <div class="two">
+      <div class="tile"><h3>Shared here</h3><ul>
+        <li>Model observations per view, street segment and buurt, with the model and revision behind them.</li>
+        <li>The tables behind every figure, and the search index.</li>
+        <li>Code: <a href="https://github.com/yunusserhat/geoai-vlm">GeoAI-VLM</a>, open source.</li></ul></div>
+      <div class="tile"><h3>Not shared, or only linked</h3><ul>
+        <li>Street images load from the City's own server. Hosted here, with attribution: one example panorama with its four views (WP3), the 47 before/after pairs (WP6) and an aerial poster (home).</li>
+        <li>No personal data: mobility is synthetic throughout; the City blurs people and plates before publishing panoramas.</li>
+        <li>No model weights are redistributed.</li>
+        <li>Survey answers (pilot): anonymous, in a PostgreSQL database (Supabase, EU) that visitors can only add to; published as totals only, never as rows.</li></ul></div>
+    </div>
+  </section>
+
+  <section class="section" id="sources">
+    <div class="label">Sources and licences</div>
+    <h2 id="srch">Sources and models.</h2>
+    <div class="src" id="src"></div>
+  </section>
+
+  <section class="section" style="padding-top:3rem">
+    <div class="label">Details</div>
+    <details class="more"><summary>Provenance record</summary><div class="body"><div id="prov"></div></div></details>
+    <details class="more"><summary>Known limits of the street-level data</summary><div class="body"><ul>
+      <li>One year (2025), on days the City's car drove, in summer daylight, seen from the carriageway.</li>
+      <li>Footways and paths are rarely recorded (8% of their length).</li>
+      <li>View direction follows the estimated driving direction, which can be some degrees off on sharp turns.</li>
+      <li>Model output is not measurement: each feature carries its agreement with a larger model, and three are not used (WP3).</li></ul></div></details>
+    <details class="more"><summary>Software</summary><div class="body"><p>FastAPI on a CPU; plain HTML, CSS and JavaScript; Leaflet (BSD-2-Clause) for maps; CesiumJS (Apache-2.0) for the 3D city, with no Cesium ion services. Survey layer: PostgreSQL on Supabase with row-level security (insert only for visitors) and aggregate functions; the schema is <a href="data/survey/schema.sql">public</a>. Fonts: Source Serif 4, Public Sans, JetBrains Mono (SIL Open Font Licence), served from this site.</p></div></details>
+  </section>
+</main>
+
+<script>
+const SOURCES = [
+  ["data", "City of Amsterdam street panoramas, 2025", "Kernregistratie Panoramabeelden; every street-level observation, the WP3 example, WP6 'before' images", "CC BY 4.0"],
+  ["data", "PDOK aerial photo 2025", "Beeldmateriaal Nederland, orthoHR; ground of the 3D city and the home poster", "CC BY 4.0"],
+  ["data", "3DBAG LoD2.2 buildings", "TU Delft 3D geoinformation and 3DGI, v2025.09.03; recoloured and lowered 43 m to the ellipsoid", "CC BY 4.0"],
+  ["data", "OpenStreetMap", "Street network, destinations, ferries and basemap tiles", "ODbL 1.0"],
+  ["data", "CBS StatLine 85618NED, 2023", "Kerncijfers wijken en buurten; income measures (WP5)", "CC BY 4.0"],
+  ["data", "CBS Wijk- en Buurtkaart 2023", "Buurt boundaries, via PDOK", "CC0 1.0"],
+  ["data", "Meldingen openbare ruimte", "The City's public-space reports, SIA open data (WP4)", "Creative Commons, attribution"],
+  ["model", "Qwen3.5-4B", "Audit of all 99,100 views, template active_mobility_audit_v2", "Apache-2.0"],
+  ["model", "Qwen3.8-27B-FP8", "Reference: agreement checks, WP6 confirmation, edit checks, grounded answers", "Apache-2.0"],
+  ["model", "SegFormer-B5 (Cityscapes)", "NVIDIA; class shares, green view", "NVIDIA research licence, non-commercial", true],
+  ["model", "Place Pulse ViT-B/16 (Jiani11)", "Perceived qualities, a stand-in for ELEVATE's own model", "Apache-2.0"],
+  ["model", "Place Pulse ResNet-50 (seshing)", "Second opinion on perception, used internally as a cross-check", "no licence file", true],
+  ["model", "EmbeddingGemma 2", "Image and text search index, 256 dimensions", "Apache-2.0"],
+  ["model", "Qwen-Image-2.1-Turbo", "The 47 WP6 visualisations only", "Qwen Research Licence, non-commercial", true],
+];
+
+document.addEventListener("DOMContentLoaded", async () => {
+  document.getElementById("srch").textContent = `${SOURCES.length} sources and models.`;
+  document.getElementById("src").innerHTML = SOURCES.map(([k, n, u, l, nc]) => `<div class="tile"><span class="kind">${k}</span><h3>${esc(n)}</h3><p>${esc(u)}</p><span class="lic${nc ? " nc" : ""}">${esc(l)}</span></div>`).join("")
+    + `<div class="tile" style="border-style:dashed"><span class="kind">generated here</span><h3>Synthetic WP2 data</h3><p>200 persons, GPS and steps, built to the protocol's parameters; always labelled.</p><span class="lic nc">synthetic</span></div>`;
+  try {
+    const p = await getJSON("data/provenance.json");
+    const rows = [
+      ["Built", p.built],
+      ["Imagery", `${p.imagery.source}; ${fmt(p.imagery.panoramas, 0)} panoramas, ${fmt(p.imagery.views, 0)} views; ${p.imagery.licence}`],
+      ["Audit model", `${p.audit.model} @ ${String(p.audit.revision).replace(/[\[\]']/g, "").slice(0, 8)}; template ${p.audit.template}; processing id ${String(p.audit.processing_id).replace(/[\[\]']/g, "")}`],
+      ["Reference model", `${p.reference.model} (${p.reference.use})`],
+      ["Segmentation", p.segmentation],
+      ["Perception (stand-in)", `${p.perception.primary}; second opinion ${p.perception.second}`],
+      ["Search index", `${p.embedding.embedding_model} @ ${String(p.embedding.model_revision).slice(0, 8)}; ${p.embedding.truncate_dim} d; ${p.embedding.embedded}; ${fmt(p.embedding.n, 0)} views`],
+      ["Image edits", `${p.image_edits.model}; ${p.image_edits.licence}; "${p.image_edits.label}"`],
+      ["Income", p.income], ["Reports", p.reports], ["Network", p.network],
+      ["3D ground", p.aerial_3d || "–"], ["3D buildings", p.buildings_3d || "–"], ["Synthetic", p.synthetic],
+    ].map(([a, b]) => ({ a, b }));
+    table(document.getElementById("prov"), rows, [{ key: "a", label: "Item" }, { key: "b", label: "Record" }]);
+  } catch (e) { document.getElementById("prov").innerHTML = `<p class="error">Could not load the provenance record (${esc(e.message)}).</p>`; }
+});
+</script>
+</body>
+</html>

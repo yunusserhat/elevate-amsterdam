@@ -1,0 +1,21 @@
+# Licences and attribution (checked 2026-10-10; 3D sources added 2026-10-11)
+
+| Material | Licence | Use here | Attribution / conditions |
+|---|---|---|---|
+| City of Amsterdam panoramas ("Kernregistratie Panoramabeelden", api.data.amsterdam.nl/panorama) | CC BY 4.0 (data.overheid.nl dataset page) | main imagery, 2025 recordings; cube faces downloaded for analysis | "Panoramas: Gemeente Amsterdam, CC BY 4.0". Link images to the city's panorama viewer; show only a curated few on the site. |
+| PDOK Luchtfoto 2025 orthoHR (Beeldmateriaal Nederland, WMTS) | CC BY 4.0 | ground of the home page's 3D city; aerial poster image | "Aerial photo 2025: Beeldmateriaal Nederland via PDOK, CC BY 4.0"; shown with the 3D view and in the footer |
+| 3DBAG v20250903, LoD2.2 3D Tiles (TU Delft 3D geoinformation group and 3DGI) | CC BY 4.0 | buildings of the home page's 3D city | "3DBAG by the 3D geoinformation research group (TU Delft) and 3DGI", link to the licence; changes indicated: recoloured, lowered 43 m to the ellipsoid |
+| OpenStreetMap | ODbL 1.0 | street network, POIs, basemap | "© OpenStreetMap contributors (ODbL)" |
+| CBS Wijk- en Buurtkaart 2023 (PDOK WFS) | CC0 1.0 (PDOK service AccessConstraints) | buurt boundaries, density, income (2023 is the latest edition with income filled; 2024 has income still empty) | cite CBS / PDOK; values suppressed by CBS for small buurten stay missing |
+| CBS StatLine 85618NED, Kerncijfers wijken en buurten 2023 (OData API) | CC BY 4.0 (cbs.nl copyright page) | income measures for WP5 equity (more complete and newer than the PDOK copy) | "Source: Statistics Netherlands (CBS)" |
+| Meldingen openbare ruimte Amsterdam (SIA open dataset, api.data.amsterdam.nl/v1/meldingen) | "Creative Commons, Naamsvermelding" (API metadata) | WP4 triangulation at buurt level, June–October 2025 | "Meldingen: Gemeente Amsterdam"; report locations are approximate, never matched to single images |
+| Qwen/Qwen3.5-4B, Qwen3.5-9B, Qwen3.8-27B | Apache-2.0 | audit models (primary, comparison, reference) | model ids and revisions recorded per record |
+| google/embeddinggemma-2 | Apache-2.0 | retrieval index and search | — |
+| Qwen/Qwen-Image-2.1-Turbo | Qwen Research Licence: non-commercial research or evaluation only | ~50 before/after visualisations (WP6) | Non-commercial demo only. Label every image "AI-generated visualisation, not a design proposal". The model weights are not redistributed. |
+| nvidia/segformer-b5-finetuned-cityscapes-1024-1024 | other (NVIDIA research licence) | Cityscapes class fractions | non-commercial research use |
+| Jiani11/human-perception-place-pulse (Place Pulse 2.0, ViT-B/16) | Apache-2.0 (model card, GitHub repo) | perceived qualities, primary (WP3, step 2.4) | cite Hou et al. 2024 (Global Streetscapes) and Dubey et al. 2016 (Place Pulse 2.0); stand-in for ELEVATE's own perception model |
+| seshing/placepulse (Place Pulse 2.0, ResNet-50) | no licence file or model card; used by ZenSVI (MIT code) | perceived qualities, second opinion, internal (decision 2026-10-11) | weights not redistributed; cite ZenSVI and Dubey et al. 2016 |
+| Synthetic GPS / mobility data (WP2) | own, generated | pipeline demonstration | always labelled "synthetic" |
+
+The site (www.yunusserhat.com/elevate) and its search API (Hugging Face Space) are a non-commercial research demonstration. Hosted images: one example panorama with its four views (WP3), the 47 WP6 before/after pairs and the aerial poster, all with attribution; every other street image loads from the City's server. Model outputs are
+model-generated observations, not measurements.

@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WP4 Mixed methods · ELEVATE in Amsterdam</title>
+<meta name="description" content="Residents' public-space reports set against what the street images show, buurt by buurt across Amsterdam: where they agree, where they cannot, and where walk-along interviews would start.">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="assets/site.css">
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="assets/site.js"></script>
+<style>.card .seg { margin-top: 0.4rem; box-shadow: none; }</style>
+</head>
+<body>
+<main>
+  <header class="intro">
+    <div class="label">WP4<span class="sep">·</span>Qualitative and mixed methods <span class="status">real data</span></div>
+    <h1>What residents report, and what the images show.</h1>
+    <p class="lead">Before any walk-along interview, one open source of residents' own observations exists: the City's public-space reports.</p>
+    <div class="actions"><a class="btn go" href="#s1">Start ↓</a></div>
+  </header>
+
+  <section class="story" id="s1">
+    <div class="stage">
+      <div class="layer on" data-layer="map"><div id="map" class="map" role="region" aria-label="Map of reports per buurt"></div></div>
+      <div class="layer" data-layer="scatter"><div class="chartbox offset"><svg id="scatter" viewBox="0 0 760 480" role="img" aria-label="Reports per km against the model's share, per buurt"></svg></div></div>
+      <div class="layer" data-layer="rho"><div class="chartbox offset"><svg id="rho" viewBox="0 0 760 440" role="img" aria-label="Agreement between reports and images, by report group"></svg></div></div>
+      <div class="layer" data-layer="litter"><div class="chartbox offset"><svg id="litter" viewBox="0 0 760 360" role="img" aria-label="Litter reports: correlation with the images and with income"></svg></div></div>
+      <div class="stage-legend" id="legend"></div>
+      <div class="stage-caption" id="stagecap"></div>
+    </div>
+    <div class="steps">
+      <div class="step"><div class="card"><div class="count"><span>01 / 05</span></div><h3>223,592 reports.</h3>
+        <p>June to October 2025, the panoramas' months. Here: obstacles on the sidewalk, per km of street.</p></div></div>
+      <div class="step"><div class="card"><div class="count"><span>02 / 05</span></div><h3>What the model sees.</h3>
+        <p>The share of sampled panoramas where the model reports an obstructed sidewalk.</p></div></div>
+      <div class="step"><div class="card"><div class="count"><span>03 / 05</span></div><h3>Buurt by buurt.</h3>
+        <p>Locations are coarse, so reports and images meet per buurt, never report by image.</p>
+        <div id="group"></div></div></div>
+      <div class="step"><div class="card"><div class="count"><span>04 / 05</span></div><h3>Where they agree, where they cannot.</h3>
+        <p>Obstacles agree, even with address density held fixed. A street-light report says nothing about whether a pole is visible.</p></div></div>
+      <div class="step"><div class="card"><div class="count"><span>05 / 05</span></div><h3>Reports are behaviour too.</h3>
+        <p>Litter reports follow income far more than what the images show. That is why the protocol pairs data with interviews.</p></div></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="label">What WP4 would add</div>
+    <div class="cols">
+      <div class="text"><h2>Walk-alongs where the two sources disagree.</h2></div>
+      <div class="prose"><p>The protocol interviews about twenty participants on site and on walk-alongs, then triangulates the transcripts with the numbers. Buurten where reports and images disagree are the natural place to start: a resident can say what the camera missed, or why nobody reports what it saw.</p></div>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:2rem">
+    <div class="label">Details</div>
+    <details class="more"><summary>Data, matching and the full table</summary><div class="body">
+      <p>Source: "Meldingen over de Openbare Ruimte in Amsterdam" (SIA open data, api.data.amsterdam.nl/v1/meldingen), Creative Commons attribution. 99% of the reports in the window are closed. The City's buurt code matches CBS as "BU0363" + code. Spearman ρ across 360 buurten, 95% bootstrap interval; partial ρ holds address density fixed.</p>
+      <div id="tab"></div></div></details>
+  </section>
+</main>
+
+<script>
+const GROUPS = {
+  obstruction: ["Obstacles", "obstructed sidewalk"], parking: ["Parking nuisance", "car parked on the sidewalk"], litter: ["Litter and dumping", "litter"],
+  street_furniture: ["Street furniture", "seating"], street_lighting: ["Street lighting", "light pole visible"], pavement: ["Pavement repair", "surface damage"],
+  trees: ["Trees", "vegetation share (segmentation)"],
+};
+const REP = ["#f3e6d3", "#e6c79f", "#d6a36b", "#c27d3e", "#a85d00", "#7a4300"];
+
+document.addEventListener("DOMContentLoaded", async () => {
+  const stage = document.querySelector("#s1 .stage");
+  const legend = document.getElementById("legend"), cap = document.getElementById("stagecap");
+  const [b, model, tri, chap] = await Promise.all([getJSON("data/layers/buurten.geojson"), getJSON("data/tables/wp4_buurt_model.json"),
+    getJSON("data/tables/wp4_signalen_triangulation.json"), getJSON("data/home/chapters.json")]);
+  const M = model.buurten, focus = chap.wp4.buurtcode;
+
+  const map = baseMap("map", { zoom: 11.5, center: [52.36, 4.89], zoomSnap: 0.25 });
+  const layer = L.geoJSON(b, { renderer: L.canvas({ padding: 0.3 }) }).addTo(map);
+  const ring = L.geoJSON({ type: "FeatureCollection", features: b.features.filter(f => f.properties.buurtcode === focus) }, { style: { color: "#15191c", weight: 3, fill: false } });
+  function paint(get, ramp, label, fmtv) {
+    const vals = b.features.map(f => get(f.properties)), br = quantileBreaks(vals, ramp.length);
+    layer.setStyle(f => ({ fillColor: rampColour(get(f.properties), br, ramp) || "#dfe4e6", fillOpacity: 0.88, color: "#fff", weight: 0.6 }));
+    const v = vals.filter(x => x !== null && x !== undefined);
+    legend.innerHTML = `<div>${label} ${rampHTML(ramp)}</div><div>${fmtv(Math.min(...v))} → ${fmtv(Math.max(...v))} · quantiles</div><div>${esc(chap.wp4.buurt)} <span class="sw" style="background:none;border:2px solid #15191c"></span></div>`;
+  }
+
+  // scatter for one report group
+  let group = "obstruction";
+  function scatter() {
+    const W = 760, H = 480, L0 = 80, R0 = 730, T = 66, B = H - 70;
+    const pts = b.features.map(f => ({ code: f.properties.buurtcode, name: f.properties.buurtnaam, x: f.properties[`reports_${group}_per_km`], y: (M[f.properties.buurtcode] || {})[group] }))
+      .filter(p => p.x !== null && p.x !== undefined && p.y !== null && p.y !== undefined);
+    const xs = pts.map(p => Math.max(0.1, p.x)), lo = Math.log10(Math.min(...xs)), hi = Math.log10(Math.max(...xs));
+    const ymax = Math.max(...pts.map(p => p.y)) || 1;
+    const x = v => L0 + (Math.log10(Math.max(0.1, v)) - lo) / (hi - lo) * (R0 - L0), y = v => B - (v / ymax) * (B - T);
+    const r = tri.find(t => t.report_group === group);
+    let s = `<text class="title" x="${L0}" y="20">${esc(GROUPS[group][0])}: reports per km against ${esc(GROUPS[group][1])} · ρ ${fmt(r.spearman_with_model)} [${fmt(r.ci_lo)}, ${fmt(r.ci_hi)}]</text>`;
+    [0.1, 1, 10, 100, 1000].filter(v => Math.log10(v) >= lo - 0.01 && Math.log10(v) <= hi + 0.01).forEach(v => { s += `<line x1="${x(v)}" x2="${x(v)}" y1="${T}" y2="${B}" stroke="#e3e8ea"/><text x="${x(v)}" y="${B + 20}" text-anchor="middle" font-size="11" font-family="JetBrains Mono" fill="#5f6a73">${v}</text>`; });
+    [0, 0.25, 0.5, 0.75, 1].filter(v => v <= ymax + 1e-9).forEach(v => { s += `<line x1="${L0}" x2="${R0}" y1="${y(v)}" y2="${y(v)}" stroke="#e3e8ea"/><text x="${L0 - 10}" y="${y(v) + 4}" text-anchor="end" font-size="11" font-family="JetBrains Mono" fill="#5f6a73">${group === "trees" ? fmt(v, 2) : pct(v, 0)}</text>`; });
+    s += `<text x="${(L0 + R0) / 2}" y="${B + 44}" text-anchor="middle" font-size="11" font-family="JetBrains Mono" fill="#5f6a73">REPORTS PER KM OF STREET, JUNE–OCTOBER 2025 (LOG SCALE)</text>`;
+    s += pts.map(p => `<circle cx="${x(p.x)}" cy="${y(p.y)}" r="${p.code === focus ? 8 : 4.5}" fill="${p.code === focus ? "#a85d00" : "#0d6b63"}" fill-opacity="${p.code === focus ? 1 : 0.55}"${p.code === focus ? ' stroke="#fff" stroke-width="2"' : ""}><title>${esc(p.name)}</title></circle>`).join("");
+    const f = pts.find(p => p.code === focus);
+    if (f) s += `<text x="${x(f.x) - 12}" y="${y(f.y) + 24}" text-anchor="end" font-size="13" font-weight="600" fill="#a85d00">${esc(f.name)}</text>`;
+    document.getElementById("scatter").innerHTML = s;
+  }
+  seg(document.getElementById("group"), ["obstruction", "parking", "litter", "street_lighting"].map(k => [k, GROUPS[k][0]]), group, v => { group = v; scatter(); });
+  scatter();
+
+  // agreement by report group
+  (() => {
+    const rows = [...tri].sort((a, b) => b.spearman_with_model - a.spearman_with_model);
+    const W = 760, H = 440, L0 = 190, R0 = 730, T = 50, row = (H - T - 60) / rows.length;
+    const x = v => L0 + (v + 0.6) / 1.5 * (R0 - L0);
+    let s = `<text class="title" x="${L0}" y="20">Reports against the images, across 360 buurten</text>`;
+    [-0.6, -0.3, 0, 0.3, 0.6, 0.9].forEach(v => { s += `<line x1="${x(v)}" x2="${x(v)}" y1="${T - 8}" y2="${H - 50}" stroke="${v === 0 ? "#15191c" : "#e3e8ea"}"/><text x="${x(v)}" y="${H - 30}" text-anchor="middle" font-size="11" font-family="JetBrains Mono" fill="#5f6a73">${v.toFixed(1)}</text>`; });
+    rows.forEach((r, i) => {
+      const yy = T + i * row + row / 2, c = r.ci_lo > 0 ? "#0d6b63" : r.ci_hi < 0 ? "#a85d00" : "#9aa3aa";
+      s += `<text x="${L0 - 12}" y="${yy + 5}" text-anchor="end" font-size="14" fill="#15191c">${esc(GROUPS[r.report_group][0])}</text>
+        <line x1="${x(r.ci_lo)}" x2="${x(r.ci_hi)}" y1="${yy}" y2="${yy}" stroke="${c}" stroke-width="2.5" opacity="0.6"/>
+        <circle cx="${x(r.spearman_with_model)}" cy="${yy}" r="7" fill="${c}"/>
+        <circle cx="${x(r.partial_given_address_density)}" cy="${yy}" r="6" fill="#fff" stroke="${c}" stroke-width="2"/>`;
+    });
+    s += `<circle cx="${L0}" cy="${H - 8}" r="5" fill="#0d6b63"/><text x="${L0 + 10}" y="${H - 4}" font-size="12" fill="#5f6a73">Spearman ρ, 95% interval</text><circle cx="${L0 + 210}" cy="${H - 8}" r="5" fill="#fff" stroke="#0d6b63" stroke-width="2"/><text x="${L0 + 220}" y="${H - 4}" font-size="12" fill="#5f6a73">holding address density fixed</text>`;
+    document.getElementById("rho").innerHTML = s;
+  })();
+
+  // litter: images vs income
+  (() => {
+    const r = tri.find(t => t.report_group === "litter");
+    const W = 760, L0 = 240, R0 = 700, x = v => L0 + v / 0.5 * (R0 - L0);
+    const bar = (yy, v, lo, hi, label, c) => `<text x="${L0 - 14}" y="${yy + 26}" text-anchor="end" font-size="15" fill="#15191c">${label}</text>
+      <rect x="${L0}" y="${yy}" width="${x(v) - L0}" height="42" fill="${c}"/><line x1="${x(lo)}" x2="${x(hi)}" y1="${yy + 21}" y2="${yy + 21}" stroke="#15191c" stroke-width="1.5"/>
+      <text x="${x(hi) + 10}" y="${yy + 27}" font-size="18" font-weight="600" font-family="Source Serif 4" fill="#15191c">${fmt(v)}</text>`;
+    let s = `<text class="title" x="${L0}" y="24">Litter reports per km, Spearman ρ across 360 buurten</text>`;
+    s += bar(70, r.spearman_with_model, r.ci_lo, r.ci_hi, "with litter in the images", "#9aa3aa");
+    s += bar(160, r.spearman_with_low_income, r.ci_lo_income, r.ci_hi_income, "with low-income share", "#a85d00");
+    [0, 0.1, 0.2, 0.3, 0.4, 0.5].forEach(v => { s += `<text x="${x(v)}" y="250" text-anchor="middle" font-size="11" font-family="JetBrains Mono" fill="#5f6a73">${v.toFixed(1)}</text>`; });
+    document.getElementById("litter").innerHTML = s;
+  })();
+
+  story(document.getElementById("s1"), {
+    onStep: i => {
+      legend.innerHTML = ""; cap.textContent = "Reports: Gemeente Amsterdam, SIA open data · model observations of 2025 street views";
+      if (i === 0) { showLayer(stage, "map"); ring.addTo(map); paint(p => p.reports_obstruction_per_km, REP, "Obstacle reports per km", v => fmt(v, 1)); }
+      if (i === 1) { showLayer(stage, "map"); ring.addTo(map); paint(p => (M[p.buurtcode] || {}).obstruction, RAMP, "Obstructed sidewalk (model)", v => pct(v, 0)); }
+      if (i === 2) { showLayer(stage, "scatter"); legend.innerHTML = `<div>buurt <span class="sw" style="background:#0d6b63"></span></div><div>${esc(chap.wp4.buurt)} <span class="sw" style="background:#a85d00"></span></div>`; }
+      if (i === 3) showLayer(stage, "rho");
+      if (i === 4) showLayer(stage, "litter");
+    },
+  });
+
+  table(document.getElementById("tab"), tri, [
+    { key: "report_group", label: "Report group", render: r => esc(GROUPS[r.report_group][0]) },
+    { key: "reports_jun_oct_2025", label: "Reports", num: true, render: r => fmt(r.reports_jun_oct_2025, 0) },
+    { key: "model_indicator", label: "Set against", render: r => esc(GROUPS[r.report_group][1]) },
+    { key: "spearman_with_model", label: "ρ [95% CI]", num: true, render: r => `${fmt(r.spearman_with_model)} [${fmt(r.ci_lo)}, ${fmt(r.ci_hi)}]` },
+    { key: "partial_given_address_density", label: "Partial ρ", num: true, render: r => fmt(r.partial_given_address_density) },
+    { key: "spearman_with_low_income", label: "ρ with low-income share", num: true, render: r => fmt(r.spearman_with_low_income) },
+  ]);
+});
+</script>
+</body>
+</html>

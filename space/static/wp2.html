@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WP2 Mobility and activity · ELEVATE in Amsterdam</title>
+<meta name="description" content="Synthetic GPS for 200 made-up people, built to the ELEVATE protocol's parameters and run through its cleaning, trip detection and exposure chain; a day of walking and cycling across Amsterdam as a spike map.">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="assets/site.css">
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="assets/site.js"></script>
+<style>
+  .clock { position: absolute; top: 4.8rem; left: 50%; transform: translateX(-50%); z-index: 460; text-align: center; pointer-events: none; transition: opacity 0.4s; }
+  .clock b { display: block; font: 600 clamp(3rem, 7vw, 5.6rem)/1 var(--mono); letter-spacing: -0.02em; color: var(--ink); text-shadow: 0 2px 18px rgba(246, 247, 245, 0.9); }
+  .clock span { font: 500 0.72rem/1.6 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  .counts { display: flex; gap: 1.2rem; margin: 0.8rem 0 0.4rem; font: 400 0.78rem/1.3 var(--mono); color: var(--muted); }
+  .counts b { display: block; font: 600 1.6rem/1.1 var(--serif); }
+  .counts .w b { color: var(--accent); } .counts .b b { color: var(--bike); }
+  #profile { width: 100%; height: 70px; display: block; margin-top: 0.4rem; }
+  .card .seg { margin-top: 0.6rem; box-shadow: none; }
+  @media (max-width: 900px) { .clock { top: 4.2rem; } .clock b { font-size: 2.6rem; } .counts b { font-size: 1.25rem; } #profile { display: none; } }
+</style>
+</head>
+<body>
+<main>
+  <header class="intro">
+    <div class="label">WP2<span class="sep">·</span>Mobility and physical activity <span class="status" data-status="synthetic">synthetic</span></div>
+    <h1>A city on the move, made up.</h1>
+    <p class="lead">200 synthetic people, a week of GPS every 30 seconds, built to the protocol's numbers and run through its cleaning. No one was tracked.</p>
+    <div class="actions"><a class="btn go" href="#s1">Watch a day ↓</a></div>
+  </header>
+
+  <section class="story" id="s1">
+    <div class="stage">
+      <div class="layer on" data-layer="map"><div id="map" class="map" role="region" aria-label="Map of synthetic movement in Amsterdam"></div>
+        <div class="clock" id="clock" style="opacity:0"><b id="hh">07:00</b><span id="daylabel">average weekday · synthetic</span></div></div>
+      <div class="layer" data-layer="modes"><div class="chartbox offset"><svg id="modes" viewBox="0 0 760 420" role="img" aria-label="Share of fixes given the right mode, by true state"></svg></div></div>
+      <div class="badge">Synthetic data</div>
+      <div class="stage-legend" id="legend"></div>
+      <div class="stage-caption" id="stagecap"></div>
+    </div>
+    <div class="steps">
+      <div class="step"><div class="card"><div class="count"><span>01 / 05</span></div><h3>One phone, one day.</h3>
+        <p>A fix every 30 seconds. Indoors, most of them are noise.</p>
+        <div class="big" id="rawn">–<small>raw fixes, one synthetic person-day</small></div></div></div>
+      <div class="step"><div class="card"><div class="count"><span>02 / 05</span></div><h3>Cleaned by the protocol's rules.</h3>
+        <p>Fixes worse than 5 m go, impossible jumps go, short gaps are filled. Each fix gets a mode.</p>
+        <div class="big">166,104<small>of 663,809 fixes pass the 5 m rule</small></div></div></div>
+      <div class="step long"><div class="card"><div class="count"><span>03 / 05</span></div><h3>Everyone at once, through the day.</h3>
+        <p>Minutes of walking and cycling per 250 m square, every half-hour.</p>
+        <div class="counts"><div class="w"><b id="nw">0</b>walking</div><div class="b"><b id="nb">0</b>cycling</div></div>
+        <svg id="profile" viewBox="0 0 300 70" aria-hidden="true"></svg>
+        <div id="daytype"></div></div></div>
+      <div class="step"><div class="card"><div class="count"><span>04 / 05</span></div><h3>Which mode was it?</h3>
+        <p>Scored against the truth the generator kept. Walking is hardest: 14% of walking fixes are read as stays, 10% as cycling.</p></div></div>
+      <div class="step"><div class="card"><div class="count"><span>05 / 05</span></div><h3>What they walk past.</h3>
+        <p>Each walking or cycling fix takes the green view of the street within 25 m, from WP3.</p>
+        <div class="big">r 0.96<small>observed vs true half-hour green view</small></div></div></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="label">Not a finding</div>
+    <div class="cols">
+      <div class="text"><h2>The rhythm is the one the generator was given.</h2></div>
+      <div class="prose">
+        <p>Commutes and lunch walks were written into the generator. The run shows that the protocol's chain works end to end and can be scored against a known answer. It says nothing about how Amsterdam moves.</p>
+        <p>The scores flatter the chain, because synthetic speeds are more regular than real ones. Where real data will bite: the 5 m rule removes most indoor fixes, buses are hard to tell from bicycles by speed alone, and exposure is missing wherever a path runs along a street the image sample did not cover.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:2rem">
+    <div class="label">Details</div>
+    <details class="more"><summary>What the protocol fixes, and what is assumed here</summary><div class="body">
+      <p>From the protocol: GPS every 30 s, steps, seven days, the 5 m accuracy rule, the speed rule, gap filling up to 2 minutes, stay points, 25 m street exposure, half-hours. Assumed here, labelled and not calibrated: a 07:00–19:00 window, homes across CBS income strata, OpenStreetMap destinations with distance decay, mode by trip distance (walks over 3 km become cycling), ferries, GPS error indoors and out, signal gaps, non-wear.</p>
+      <p>Steps were calibrated to the protocol's figures: person means average 9,587 a day (SD 2,248), against 9,448 (SD 2,218).</p>
+      <div id="qc"></div></div></details>
+    <details class="more"><summary>The spike map</summary><div class="body">
+      <p>Every recorded fix of a synthetic person walking or cycling, by its true state, in 250 m squares and half-hours from 07:00 to 19:00, as minutes per average weekday (five days) or weekend day (two days). People counts are the synthetic people walking or cycling in that half-hour on an average day.</p></div></details>
+  </section>
+</main>
+
+<script>
+const MODE_COL = { walk: "#0d6b63", bike: "#2f4f86", vehicle: "#a85d00", stay: "#9aa3aa" };
+const CASE = "S010 day 2";
+
+document.addEventListener("DOMContentLoaded", async () => {
+  const stage = document.querySelector("#s1 .stage");
+  const legend = document.getElementById("legend"), cap = document.getElementById("stagecap"), clock = document.getElementById("clock");
+  const map = baseMap("map", { zoom: 12, center: [52.365, 4.895], zoomSnap: 0.25 });
+  const [ex, sp, expo, qc] = await Promise.all([getJSON("data/layers/wp2_example_synthetic.geojson"), getJSON("data/layers/wp2_spikes_synthetic.json"),
+    getJSON("data/layers/wp2_exposure_synthetic.json"), getJSON("data/tables/wp2_pipeline_qc_synthetic.json")]);
+  const renderer = L.canvas({ padding: 0.3 });
+
+  // one person-day: raw fixes, then cleaned fixes and the hidden true path
+  const feats = ex.features.filter(f => f.properties.case === CASE);
+  const ll = f => [f.geometry.coordinates[1], f.geometry.coordinates[0]];
+  const raw = L.layerGroup(feats.filter(f => f.properties.layer === "raw fix").map(f =>
+    L.circleMarker(ll(f), { renderer, radius: 4, stroke: false, fillColor: "#e08a1e", fillOpacity: 0.75 })));
+  const clean = L.layerGroup([
+    ...feats.filter(f => f.properties.layer === "true path").map(f => L.polyline(f.geometry.coordinates.map(([x, y]) => [y, x]), { renderer, color: "#15191c", weight: 1.5, dashArray: "4 5", opacity: 0.7 })),
+    ...feats.filter(f => f.properties.layer === "cleaned fix").map(f => L.circleMarker(ll(f), { renderer, radius: 5, color: "#fff", weight: 1, fillColor: MODE_COL[f.properties.mode] || "#9aa3aa", fillOpacity: 1 }))]);
+  document.getElementById("rawn").firstChild.textContent = feats.filter(f => f.properties.layer === "raw fix").length;
+  const caseBounds = L.latLngBounds(feats.filter(f => f.geometry.type === "Point").map(ll));
+
+  // exposure: walking and cycling fixes coloured by the green view they pass
+  const gv = expo.points.map(p => p[2]), br = quantileBreaks(gv);
+  const exposure = L.layerGroup(expo.points.map(([x, y, g]) => L.circleMarker([y, x], { renderer, radius: 2.2, stroke: false, fillColor: rampColour(g, br), fillOpacity: 0.85 })));
+
+  // spike map on a canvas over the map
+  const canvas = document.createElement("canvas");
+  canvas.className = "spikes";
+  map.getContainer().appendChild(canvas);
+  const ctx = canvas.getContext("2d");
+  let dayType = "weekday", t = 0, spikesOn = false;
+  const CAP = 2.0;   // minutes at full height (weekday 99th percentile 1.7, maximum 3.8); taller cells are clipped
+  function size() { const r = map.getContainer().getBoundingClientRect(), d = devicePixelRatio || 1; canvas.width = r.width * d; canvas.height = r.height * d; canvas.style.width = `${r.width}px`; canvas.style.height = `${r.height}px`; ctx.setTransform(d, 0, 0, d, 0, 0); }
+  function spike(x, y, h, w, fill) {
+    ctx.beginPath(); ctx.moveTo(x - w, y); ctx.lineTo(x, y - h); ctx.lineTo(x + w, y); ctx.closePath();
+    ctx.fillStyle = fill; ctx.fill(); ctx.stroke();
+  }
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!spikesOn) return;
+    const D = sp[dayType], i0 = Math.floor(t), i1 = Math.min(23, i0 + 1), f = t - i0;
+    const H = Math.min(innerHeight * 0.3, 240);
+    ctx.lineWidth = 0.6;
+    D.cells.forEach(([lon, lat], k) => {
+      const w = lerp(D.walk[k][i0], D.walk[k][i1], f), b = lerp(D.bike[k][i0], D.bike[k][i1], f);
+      if (w + b < 0.04) return;
+      const p = map.latLngToContainerPoint([lat, lon]);
+      if (p.x < -10 || p.y < -10 || p.x > canvas.width || p.y > canvas.height + H) return;
+      if (b > 0.02) { ctx.strokeStyle = "rgba(255,255,255,0.7)"; spike(p.x + 2.6, p.y, Math.min(1, b / CAP) * H, 3.2, "rgba(47,79,134,0.82)"); }
+      if (w > 0.02) { ctx.strokeStyle = "rgba(255,255,255,0.7)"; spike(p.x - 2.6, p.y, Math.min(1, w / CAP) * H, 3.2, "rgba(13,107,99,0.88)"); }
+    });
+    const nw = lerp(D.persons_walk[i0], D.persons_walk[i1], f), nb = lerp(D.persons_bike[i0], D.persons_bike[i1], f);
+    document.getElementById("nw").textContent = Math.round(nw);
+    document.getElementById("nb").textContent = Math.round(nb);
+    const m = Math.round((7 * 60 + t * 30) / 5) * 5;
+    document.getElementById("hh").textContent = `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+    profileCursor();
+  }
+  size(); map.on("move zoom resize", () => { size(); draw(); });
+  addEventListener("resize", () => { size(); draw(); });
+
+  // day profile in the card
+  const prof = document.getElementById("profile");
+  function profile() {
+    const D = sp[dayType], max = Math.max(...sp.weekday.persons_bike, ...sp.weekend.persons_bike, ...sp.weekday.persons_walk);
+    const line = (a, c) => `<polyline fill="none" stroke="${c}" stroke-width="2" points="${a.map((v, i) => `${(i / 23) * 296 + 2},${66 - (v / max) * 58}`).join(" ")}"/>`;
+    prof.innerHTML = line(D.persons_bike, "#2f4f86") + line(D.persons_walk, "#0d6b63") + `<line id="cur" y1="4" y2="68" stroke="#15191c" stroke-width="1"/>
+      <text x="2" y="69" font-family="JetBrains Mono" font-size="8" fill="#5f6a73">07:00</text><text x="298" y="69" text-anchor="end" font-family="JetBrains Mono" font-size="8" fill="#5f6a73">19:00</text>`;
+    profileCursor();
+  }
+  function profileCursor() { const c = document.getElementById("cur"); if (c) { const x = (t / 23) * 296 + 2; c.setAttribute("x1", x); c.setAttribute("x2", x); } }
+  profile();
+  seg(document.getElementById("daytype"), [["weekday", "Weekday"], ["weekend", "Weekend"]], "weekday", v => {
+    dayType = v; document.getElementById("daylabel").textContent = `average ${v === "weekday" ? "weekday" : "weekend day"} · synthetic`; profile(); draw();
+  });
+
+  // mode chart
+  const conf = qc.mode_confusion_rows_true, states = ["walk", "bike", "vehicle", "stay"];
+  const names = { walk: "walking", bike: "cycling", vehicle: "in a vehicle", stay: "staying" };
+  (() => {
+    const W = 760, H = 420, L0 = 150, R0 = 720, y0 = 40, bh = 52, gap = 30;
+    let s = `<text class="title" x="${L0}" y="20">Fixes given the right mode, by true state</text>`;
+    states.forEach((st, i) => {
+      const y = y0 + i * (bh + gap), v = conf[st][st];
+      s += `<text x="${L0 - 14}" y="${y + bh / 2 + 5}" text-anchor="end" font-size="16" fill="#15191c">${names[st]}</text>
+        <rect x="${L0}" y="${y}" width="${R0 - L0}" height="${bh}" fill="#e3e8ea"/>
+        <rect x="${L0}" y="${y}" width="${(R0 - L0) * v}" height="${bh}" fill="${MODE_COL[st]}"/>
+        <text x="${L0 + (R0 - L0) * v - 10}" y="${y + bh / 2 + 7}" text-anchor="end" font-size="20" font-weight="600" fill="#fff" font-family="Source Serif 4">${Math.round(v * 100)}%</text>`;
+    });
+    document.getElementById("modes").innerHTML = s;
+  })();
+
+  const all = [raw, clean, exposure];
+  const only = (...ls) => all.forEach(l => (ls.includes(l) ? l.addTo(map) : l.remove()));
+  const modeLegend = () => Object.entries(MODE_COL).map(([k, c]) => `<div>${names[k]} <span class="sw" style="background:${c}"></span></div>`).join("") + `<div>true path ┄</div>`;
+
+  story(document.getElementById("s1"), {
+    onStep: i => {
+      spikesOn = i === 2; clock.style.opacity = spikesOn ? 1 : 0; draw();
+      legend.innerHTML = ""; cap.textContent = "Synthetic: generated to the protocol's parameters, no person tracked";
+      if (i === 0) { showLayer(stage, "map"); only(raw); map.fitBounds(caseBounds.pad(0.15), { animate: false, paddingTopLeft: [innerWidth > 900 ? 420 : 0, 60] }); legend.innerHTML = `<div>raw GPS fix <span class="sw" style="background:#e08a1e"></span></div>`; }
+      if (i === 1) { showLayer(stage, "map"); only(clean); map.fitBounds(caseBounds.pad(0.15), { animate: false, paddingTopLeft: [innerWidth > 900 ? 420 : 0, 60] }); legend.innerHTML = modeLegend(); }
+      if (i === 2) { showLayer(stage, "map"); only(); map.setView([52.362, 4.895], innerWidth > 900 ? 12.25 : 11.5, { animate: false }); legend.innerHTML = `<div>walking <span class="sw" style="background:#0d6b63"></span></div><div>cycling <span class="sw" style="background:#2f4f86"></span></div><div>spike height: minutes per 250 m square</div>`; }
+      if (i === 3) { showLayer(stage, "modes"); }
+      if (i === 4) { showLayer(stage, "map"); only(exposure); map.setView([52.366, 4.893], innerWidth > 900 ? 13 : 12, { animate: false }); legend.innerHTML = `<div>green view passed ${rampHTML()}</div><div>less → more</div>`; }
+    },
+    onProgress: (i, p) => { if (i === 2) { t = clamp01((p - 0.04) / 0.9) * 23; draw(); } },
+  });
+
+  table(document.getElementById("qc"), [
+    ["GPS fixes recorded", fmt(qc.fixes.raw, 0)], ["after the 5 m accuracy rule", fmt(qc.fixes.after_accuracy, 0)],
+    ["after the speed rule", fmt(qc.fixes.after_speed, 0)], ["after gap filling", fmt(qc.fixes_after_gap_filling, 0)],
+    ["impossible jumps removed", pct(qc.spike_recall, 0)], ["valid person-days", fmt(qc.valid_person_days, 0)],
+    ["valid half-hours with exposure", fmt(qc.halfhours_with_observed_exposure, 0)],
+  ].map(([a, b]) => ({ a, b })), [{ key: "a", label: "Synthetic pipeline" }, { key: "b", label: "Value", num: true }]);
+});
+</script>
+</body>
+</html>

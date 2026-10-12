@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WP3 Streetscape analysis · ELEVATE in Amsterdam</title>
+<meta name="description" content="99,100 views of the City of Amsterdam's 2025 panoramas, read by open models and checked feature by feature.">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="assets/site.css">
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="assets/site.js"></script>
+<style>
+  .panofx { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--night); }
+  .panofx .row { display: flex; width: min(100%, 1040px); gap: calc(var(--g, 0) * 1px); transform: translateY(calc((var(--cb, 0%) - var(--ct, 0%)) / 2)); }
+  .panofx .q { position: relative; flex: 1; aspect-ratio: 0.625; background: url(data/wp3_example/pano_equirect.jpg) no-repeat; background-size: 400% 125%; clip-path: inset(var(--ct, 0%) 0 var(--cb, 0%) 0); }
+  .panofx .q:nth-child(1) { background-position: 0% 0%; } .panofx .q:nth-child(2) { background-position: 33.333% 0%; }
+  .panofx .q:nth-child(3) { background-position: 66.667% 0%; } .panofx .q:nth-child(4) { background-position: 100% 0%; }
+  .panofx .q img { position: absolute; left: 0; right: 0; top: 31.25%; height: 49.7%; width: 100%; object-fit: cover; opacity: var(--persp, 0); }
+  .panofx .q .lab { position: absolute; left: 0.5rem; top: calc(31.25% + 0.5rem); font: 500 0.66rem/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: #fff; background: rgba(10, 15, 18, 0.65); padding: 0.32rem 0.45rem; opacity: var(--persp, 0); }
+  .panofx .tag360 { position: absolute; top: 4.6rem; left: 50%; transform: translateX(-50%); font: 500 0.7rem/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--night-muted); }
+  .focus { position: absolute; inset: 0; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 1.8rem; align-items: center; }
+  .focus img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 4px; box-shadow: var(--shadow); }
+  .feat { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .feat span { font: 400 0.84rem/1 var(--sans); padding: 0.5rem 0.7rem; border-radius: 999px; border: 1px solid var(--rule); color: var(--muted); background: var(--card); cursor: help; }
+  .feat span.present { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .feat span.not_visible { border-style: dashed; background: transparent; }
+  .feat .keyrow { width: 100%; font: 400 0.7rem/1.4 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-top: 0.6rem; }
+  .ev { min-height: 3.2em; margin-top: 1rem; font: italic 400 1rem/1.45 var(--serif); color: var(--ink-2); }
+  /* on a phone the finished split becomes a 2 x 2 grid of the four views, large enough to see */
+  @media (max-width: 700px) {
+    .panofx .row.grid2 { flex-wrap: wrap; gap: 8px; transform: none; }
+    .panofx .row.grid2 .q { flex: 0 0 calc(50% - 4px); aspect-ratio: 4 / 3; clip-path: none; background: none; }
+    .panofx .row.grid2 .q img { top: 0; height: 100%; opacity: 1; }
+    .panofx .row.grid2 .q .lab { top: 0.5rem; opacity: 1; }
+  }
+  @media (max-width: 900px) {
+    .panofx { align-items: flex-start; padding-top: 6.4rem; }
+    .focus { grid-template-columns: 1fr; align-content: start; padding-top: 1rem; gap: 0.8rem; }
+    .feat span { font-size: 0.74rem; padding: 0.4rem 0.55rem; }
+    .ev { display: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header class="intro">
+    <div class="label">WP3<span class="sep">·</span>Streetscape and environmental analysis <span class="status">real data</span></div>
+    <h1>Reading 99,100 street views.</h1>
+    <p class="lead">The City's 2025 panoramas, read by open models and checked against a larger one.</p>
+    <div class="actions"><a class="btn go" href="#s1">Follow one street ↓</a><a class="btn" href="ask.html">Ask the images →</a></div>
+  </header>
+
+  <section class="story" id="s1">
+    <div class="stage">
+      <div class="layer on" data-layer="map"><div id="map" class="map" role="region" aria-label="Map of Amsterdam"></div></div>
+      <div class="layer night full" data-layer="pano">
+        <div class="panofx offset"><div class="tag360" id="tag360">360° panorama, 4000 × 2000 px</div>
+          <div class="row" id="row">
+            <div class="q"><img src="data/wp3_example/front.jpg" alt="Front view"><span class="lab">front</span></div>
+            <div class="q"><img src="data/wp3_example/right.jpg" alt="Right view"><span class="lab">right</span></div>
+            <div class="q"><img src="data/wp3_example/back.jpg" alt="Back view"><span class="lab">back</span></div>
+            <div class="q"><img src="data/wp3_example/left.jpg" alt="Left view"><span class="lab">left</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="layer" data-layer="focus">
+        <div class="focus offset">
+          <img src="data/wp3_example/front.jpg" alt="Front view on the Bloemgracht, 3 July 2025">
+          <div><div class="feat" id="feat"></div><p class="ev" id="ev">Hover a feature for the model's evidence.</p></div>
+        </div>
+      </div>
+      <div class="layer" data-layer="tiers"><div class="chartbox offset"><svg id="tiers" viewBox="0 0 820 560" role="img" aria-label="Agreement with the larger model, by feature"></svg></div></div>
+      <div class="stage-legend" id="legend"></div>
+      <div class="stage-caption" id="stagecap"></div>
+    </div>
+    <div class="steps">
+      <div class="step"><div class="card"><div class="count"><span>01 / 07</span></div><h3>24,775 panoramas.</h3>
+        <p>From the City's camera car, June to October 2025: at most one per 50 m of street.</p></div></div>
+      <div class="step long"><div class="card"><div class="count"><span>02 / 07</span></div><h3>Into one street.</h3>
+        <p>The Bloemgracht, on 3 July 2025.</p></div></div>
+      <div class="step"><div class="card"><div class="count"><span>03 / 07</span></div><h3>One 360° image.</h3>
+        <p>This is what the camera records: the whole street at once.</p></div></div>
+      <div class="step long"><div class="card"><div class="count"><span>04 / 07</span></div><h3>Cut into four views.</h3>
+        <p>Ahead, right, behind, left. Four per panorama: 99,100 in all.</p></div></div>
+      <div class="step"><div class="card"><div class="count"><span>05 / 07</span></div><h3>Nineteen questions per view.</h3>
+        <p>An open model (Qwen3.5-4B) answers each with present, absent or not visible, and its evidence.</p></div></div>
+      <div class="step"><div class="card"><div class="count"><span>06 / 07</span></div><h3>Checked by a larger model.</h3>
+        <p>A 27B model re-read 500 views. Eight features agree well enough to map.</p>
+        <div class="big">κ 0.77<small>agreement on presence, all features</small></div></div></div>
+      <div class="step"><div class="card"><div class="count"><span>07 / 07</span></div><h3>Green, street by street.</h3>
+        <p>Vegetation share of the views, from segmentation, for 19,410 street segments.</p>
+        <p><a class="btn go" href="ask.html" style="margin-top:.4rem">Now ask the images →</a></p></div></div>
+    </div>
+  </section>
+
+
+  <section class="section">
+    <div class="label">Perceived qualities</div>
+    <div class="cols">
+      <div class="text"><h2>A stand-in, with its limits.</h2>
+        <p style="margin:.2rem 0 0"><a class="btn" href="survey.html#wp3" style="color:var(--accent)">Compare streets yourself →</a></p>
+        <div class="stat"><div class="num">0.15–0.74</div><div class="sub">agreement between two open Place Pulse models (Spearman)</div></div></div>
+      <div class="prose">
+        <p>ELEVATE trains its own perception models; they are not public. Two open models trained on Place Pulse 2.0 stand in, and they agree only moderately: a perception score depends on the model behind it.</p>
+        <div id="perception"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:3rem">
+    <div class="label">Details</div>
+    <details class="more"><summary>How far each feature can be trusted</summary><div class="body">
+      <p>Presence κ against Qwen3.8-27B-FP8 on 500 views (496 compared). Tier A ≥ 0.6, B 0.4–0.6, C &lt; 0.4 (not used); rare: under 3% of views. The same 2,000 views audited twice gave the same state 96.2% of the time.</p>
+      <div id="tiertable"></div></div></details>
+    <details class="more"><summary>Where the 2025 archive sees the network</summary><div class="body">
+      <p>53% of the 4,813 km walk and cycle network lies within 12.5 m of a 2025 panorama; footways and paths only 8%.</p>
+      <div id="coverage"></div></div></details>
+    <details class="more"><summary>Cross-check with segmentation</summary><div class="body">
+      <p>The bicycle class does not separate cycle infrastructure (AUC 0.50): the revised template does not count parked bicycles.</p>
+      <div id="auc"></div></div></details>
+  </section>
+</main>
+
+<script>
+const TIER_COL = { A: "#0d6b63", B: "#79b5a2", C: "#a85d00", rare: "#9aa3aa" };
+const START = { c: [52.362, 4.895], z: 12 };
+
+document.addEventListener("DOMContentLoaded", async () => {
+  const stage = document.querySelector("#s1 .stage");
+  const legend = document.getElementById("legend"), cap = document.getElementById("stagecap");
+  const map = baseMap("map", { zoom: START.z, center: START.c, zoomSnap: 0 });
+  const renderer = L.canvas({ padding: 0.3 });
+  const groups = { pts: L.layerGroup().addTo(map), green: null };
+  const [pts, ex] = await Promise.all([getJSON("data/layers/wp3_panoramas.json"), getJSON("data/wp3_example/example.json")]);
+  pts.forEach(([lon, lat]) => L.circleMarker([lat, lon], { renderer, radius: 1.5, stroke: false, fillColor: "#0d6b63", fillOpacity: 0.55 }).addTo(groups.pts));
+  const here = [ex.lat, ex.lon];
+  const pin = L.circleMarker(here, { radius: 11, color: "#fff", weight: 3, fillColor: "#ffb547", fillOpacity: 1 });
+  // close up, the panoramas near the example street as larger dots
+  const near = L.layerGroup();
+  pts.filter(([lon, lat]) => Math.abs(lat - here[0]) < 0.012 && Math.abs(lon - here[1]) < 0.02).forEach(([lon, lat]) =>
+    L.circleMarker([lat, lon], { renderer, radius: 6, color: "#fff", weight: 1.5, fillColor: "#0d6b63", fillOpacity: 0.95 }).addTo(near));
+  const closeUp = z => { if (z > 14.6) { if (!map.hasLayer(near)) near.addTo(map); } else if (map.hasLayer(near)) map.removeLayer(near); };
+
+  // the front view's nineteen answers
+  const front = ex.views[0], order = { present: 0, absent: 1, not_visible: 2 };
+  const items = Object.entries(front.items).sort((a, b) => order[a[1].state] - order[b[1].state]);
+  const n = s => items.filter(([, r]) => r.state === s).length;
+  document.getElementById("feat").innerHTML = items.map(([k, r]) => `<span class="${r.state}" tabindex="0" data-ev="${esc(r.evidence || "")}" data-st="${r.state.replace("_", " ")}">${esc(k.replaceAll("_", " "))}</span>`).join("")
+    + `<div class="keyrow">${n("present")} present (filled) · ${n("absent")} absent · ${n("not_visible")} not visible (dashed)</div>`;
+  const ev = document.getElementById("ev");
+  document.querySelectorAll("#feat span[data-ev]").forEach(s => { const show = () => { ev.textContent = `${s.textContent}, ${s.dataset.st}: “${s.dataset.ev}”`; }; s.addEventListener("mouseenter", show); s.addEventListener("focus", show); });
+
+  // reliability chart
+  getJSON("data/tables/wp3_item_tiers.json").then(t => {
+    const ord = { A: 0, B: 1, C: 2, rare: 3 };
+    t.sort((a, b) => ord[a.tier] - ord[b.tier] || b.kappa_presence - a.kappa_presence);
+    const narrow = innerWidth < 700, W = narrow ? 400 : 820, H = 560, L0 = narrow ? 132 : 210, R0 = W - (narrow ? 14 : 30), top = 30, row = (H - top - 40) / t.length;
+    const svg = document.getElementById("tiers");
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const x = k => L0 + (Math.max(-0.1, k) + 0.1) / 1.1 * (R0 - L0);
+    let s = `<g font-size="12" fill="#5f6a73">`;
+    [0, 0.2, 0.4, 0.6, 0.8, 1].forEach(k => { s += `<line x1="${x(k)}" x2="${x(k)}" y1="${top - 8}" y2="${H - 34}" stroke="${k === 0.6 ? "#0d6b63" : k === 0.4 ? "#b9c3c7" : "#e3e8ea"}" ${k === 0.4 || k === 0.6 ? 'stroke-dasharray="4 4"' : ""}/><text x="${x(k)}" y="${H - 14}" text-anchor="middle" font-family="JetBrains Mono" font-size="11">${k.toFixed(1)}</text>`; });
+    s += `<text x="${x(0.6) + 6}" y="${top - 12}" font-family="JetBrains Mono" font-size="10" fill="#0d6b63">MAPPED ≥ 0.6</text>`;
+    t.forEach((r, i) => {
+      const y = top + i * row + row / 2;
+      s += `<text x="${L0 - (narrow ? 8 : 14)}" y="${y + 4}" text-anchor="end" fill="#15191c" font-size="${narrow ? 11.5 : 13}">${esc(r.item.replaceAll("_", " "))}</text>`;
+      if (r.tier === "rare") { s += `<text x="${x(0) + 4}" y="${y + 4}" font-family="JetBrains Mono" font-size="10" fill="#9aa3aa">TOO RARE TO JUDGE</text>`; return; }
+      s += `<line x1="${x(r.kappa_presence_lo)}" x2="${x(r.kappa_presence_hi)}" y1="${y}" y2="${y}" stroke="${TIER_COL[r.tier]}" stroke-width="2" opacity="0.55"/><circle cx="${x(r.kappa_presence)}" cy="${y}" r="6" fill="${TIER_COL[r.tier]}"/>`;
+    });
+    s += `</g><text x="${(L0 + R0) / 2}" y="${H}" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5f6a73">${narrow ? "PRESENCE κ VS 27B · 95% CI" : "PRESENCE κ AGAINST THE 27B MODEL, 95% INTERVAL · 496 VIEWS"}</text>`;
+    svg.innerHTML = s;
+    table(document.getElementById("tiertable"), t, [
+      { key: "item", label: "Feature", render: r => esc(r.item.replaceAll("_", " ")) }, { key: "tier", label: "Tier" },
+      { key: "kappa_presence", label: "Presence κ [95% CI]", num: true, render: r => r.tier === "rare" ? "–" : `${fmt(r.kappa_presence)} [${fmt(r.kappa_presence_lo)}, ${fmt(r.kappa_presence_hi)}]` },
+      { key: "present_rate_4b", label: "Reported, 4B", num: true, render: r => pct(r.present_rate_4b) },
+      { key: "present_rate_ref", label: "Reported, 27B", num: true, render: r => pct(r.present_rate_ref) },
+      { key: "stability_agree", label: "Same when re-run", num: true, render: r => pct(r.stability_agree) },
+    ]);
+  });
+
+  let segsP = null;
+  const loadSegs = () => segsP || (segsP = getJSON("data/layers/segments.geojson").then(g => {
+    const br = quantileBreaks(g.features.map(f => f.properties.green_view));
+    groups.green = L.geoJSON(g, { renderer, style: f => ({ color: rampColour(f.properties.green_view, br) || "#c9d1d6", weight: 2.4, opacity: 1 }) });
+  }));
+
+  // the panorama splitting into four views, driven by scroll
+  const row = document.getElementById("row");
+  function split(p) {
+    const b1 = clamp01(p / 0.35), b2 = clamp01((p - 0.35) / 0.25), b3 = clamp01((p - 0.6) / 0.3);
+    const e1 = easeInOut(b1), e2 = easeInOut(b2);
+    row.style.setProperty("--ct", `${(31.25 * e1).toFixed(2)}%`);
+    row.style.setProperty("--cb", `${(19.05 * e1).toFixed(2)}%`);
+    row.style.setProperty("--g", (16 * e2).toFixed(1));
+    row.style.setProperty("--persp", easeInOut(b3).toFixed(3));
+    row.classList.toggle("grid2", b3 > 0.5);
+    document.getElementById("tag360").textContent = p < 0.05 ? "360° panorama, 4000 × 2000 px" : p < 0.6 ? "the band a 90° view sees" : "four 90° views, 768 × 576 px";
+  }
+  const zoomTo = p => {
+    const e = easeInOut(clamp01(p / 0.85));
+    const z = lerp(START.z, 17.4, e);
+    map.setView([lerp(START.c[0], here[0], e), lerp(START.c[1], here[1], e)], z, { animate: false });
+    closeUp(z);
+  };
+  const only = name => {
+    ["pts", "green"].forEach(k => { if (groups[k] && map.hasLayer(groups[k])) map.removeLayer(groups[k]); });
+    if (name && groups[name]) groups[name].addTo(map);
+  };
+
+  story(document.getElementById("s1"), {
+    onStep: async i => {
+      legend.innerHTML = ""; cap.textContent = "";
+      if (i <= 1) {
+        showLayer(stage, "map"); only("pts");
+        if (i === 0) { map.setView(START.c, START.z, { animate: false }); pin.remove(); closeUp(START.z); }
+        else pin.addTo(map);
+        legend.innerHTML = `<div>Sampled panorama <span class="sw" style="background:#0d6b63"></span></div>`;
+        cap.textContent = "Panoramas: Gemeente Amsterdam, 2025, CC BY 4.0";
+      }
+      if (i === 2) { showLayer(stage, "pano"); split(0); cap.textContent = "Bloemgracht, 3 July 2025 · Gemeente Amsterdam, CC BY 4.0"; }
+      if (i === 3) { showLayer(stage, "pano"); cap.textContent = "Bloemgracht, 3 July 2025 · Gemeente Amsterdam, CC BY 4.0 · views rendered here"; }
+      if (i === 4) { showLayer(stage, "focus"); cap.textContent = "Front view · Qwen3.5-4B, template v2"; }
+      if (i === 5) { showLayer(stage, "tiers"); legend.innerHTML = Object.entries(TIER_COL).map(([k, c]) => `<div>${k === "rare" ? "too rare" : "tier " + k} <span class="sw" style="background:${c}"></span></div>`).join(""); }
+      if (i === 6) {
+        showLayer(stage, "map"); pin.remove(); closeUp(0); await loadSegs(); only("green");
+        map.setView([52.366, 4.893], 13.4, { animate: false });
+        legend.innerHTML = `<div>Green view ${rampHTML()}</div><div>less → more</div>`;
+        cap.textContent = "Segmentation: SegFormer-B5, Cityscapes classes";
+      }
+    },
+    onProgress: (i, p) => { if (i === 1) zoomTo(p); if (i === 3) split(p); },
+  });
+
+
+  // tables
+  getJSON("data/tables/wp3_perception_agreement.json").then(p => table(document.getElementById("perception"), p, [
+    { key: "question", label: "Question" },
+    { key: "vit_vs_r50_view", label: "Two models, per view", num: true, render: r => fmt(r.vit_vs_r50_view) },
+    { key: "vit_vs_r50_pano", label: "Per panorama", num: true, render: r => fmt(r.vit_vs_r50_pano) },
+  ]));
+  getJSON("data/tables/wp3_coverage_by_road_group.json").then(c => table(document.getElementById("coverage"),
+    c.filter(r => r.network_length_m > 1000).sort((a, b) => b.network_length_m - a.network_length_m), [
+    { key: "road_group", label: "Street type" },
+    { key: "network_length_m", label: "Network km", num: true, render: r => fmt(r.network_length_m / 1000, 0) },
+    { key: "covered_length_share", label: "Within 12.5 m of a panorama", num: true, render: r => pct(r.covered_length_share, 0) },
+  ]));
+  getJSON("data/tables/wp3_segmentation_auc.json").then(a => table(document.getElementById("auc"), a.filter(r => r.item !== "sidewalk"), [
+    { key: "item", label: "Feature reported", render: r => esc(r.item.replaceAll("_", " ")) }, { key: "class", label: "Cityscapes class" },
+    { key: "auc", label: "AUC", num: true, render: r => fmt(r.auc) },
+  ]));
+});
+</script>
+</body>
+</html>

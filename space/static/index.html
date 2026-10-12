@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script>/* /elevate -> /elevate/, so the relative links resolve */ if (!/\/$|\.html$/.test(location.pathname)) location.replace(location.pathname + "/" + location.search + location.hash);</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ELEVATE in Amsterdam</title>
+<meta name="description" content="The seven work packages of the ELEVATE protocol worked through in Amsterdam, flown over the city in 3D: street images read by open models, synthetic GPS run through the analysis chain, equity across buurten, and an idea for the recommender.">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="preconnect" href="https://service.pdok.nl">
+<link rel="preconnect" href="https://data.3dbag.nl">
+<link rel="preload" as="image" href="data/home/poster.jpg">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.146.0/Build/Cesium/Widgets/widgets.css">
+<link rel="stylesheet" href="assets/site.css">
+<script>window.CESIUM_BASE_URL = "https://cdn.jsdelivr.net/npm/cesium@1.146.0/Build/Cesium/";</script>
+<script src="https://cdn.jsdelivr.net/npm/cesium@1.146.0/Build/Cesium/Cesium.js" defer></script>
+<script src="assets/site.js"></script>
+<script src="assets/city3d.js" defer></script>
+</head>
+<body class="home">
+<!--
+THESIS: One 3D Amsterdam behind the whole page; scrolling flies the camera, rising and coming down, to a place that stands for each work package, with one short card per package and a way into its own page; refuses a text hero and feature cards.
+OWN-WORLD: Night ground (#0a0f12) with canal-green glow (#63d6c4) over the 2025 aerial photo and buildings; light paper (#f6f7f5) only for the closing notes; Source Serif 4 display, Public Sans interface, JetBrains Mono labels and measurements.
+STORY: The visitor flies from the whole city to one street per work package, reads one line and one number, and opens the package that interests them; each package page links back to the same place.
+FIRST VIEWPORT: Full-bleed 3D city slowly turning; title and one-line lead at lower left over a dark veil; a scroll cue.
+FORM: Scroll-driven chapters over a fixed 3D scene (user-pinned: like the gods-eye-view flythrough and alpha-urban's story pages, not a copy), seed: brief-pinned, no roll.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+-->
+<div id="city" aria-hidden="true"><div class="poster" style="background-image:url(data/home/poster.jpg)"></div><div class="globe" id="globe"></div></div>
+<div class="cityveil"></div>
+
+<main class="chapters" data-night-top>
+  <section class="chapter first" id="top" data-ch="intro" aria-label="Introduction">
+    <div class="home-hero">
+      <div class="label">Amsterdam<span class="sep">·</span>2025<span class="sep">·</span>a worked example</div>
+      <h1>The ELEVATE protocol, worked through in Amsterdam.</h1>
+      <p class="lead">Seven work packages. Real city data where it exists, synthetic data where it cannot, each labelled.</p>
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:1.4rem;margin-top:2rem">
+        <a class="cue" href="#wp1" style="margin-top:0">Scroll to fly through <span>↓</span></a>
+        <a class="btn solid" href="ask.html">Ask the images →</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="chapter" id="wp1" data-ch="wp1" aria-labelledby="h-wp1">
+    <div class="panel">
+      <div class="wp"><span class="label">WP1 · Co-creation</span><span class="status" data-status="hypothetical">hypothetical</span></div>
+      <h2 id="h-wp1">Who asks what of the streets?</h2>
+      <p class="quote" id="quote"></p>
+      <div class="num">16<small>questions from six stakeholder groups, written by role-play for workshops to replace</small></div>
+      <a class="open" href="wp1.html">Open WP1 →</a>
+    </div>
+  </section>
+
+  <section class="chapter" id="wp2" data-ch="wp2" aria-labelledby="h-wp2">
+    <div class="panel">
+      <div class="wp"><span class="label">WP2 · Mobility and activity</span><span class="status" data-status="synthetic">synthetic</span></div>
+      <h2 id="h-wp2">A week of movement, made up.</h2>
+      <p>200 synthetic people, a GPS fix every 30 seconds, run through the protocol's cleaning. One of their walks:</p>
+      <div class="rows">
+        <div><span>Walk</span><b id="who">S097, day 5 · 1.9 km</b></div>
+        <div><span>GPS fixes (orange)</span><b id="fixes">36</b></div>
+        <div><span>Walked</span><b id="walked">0 m</b></div>
+        <div><span>Green view on the way</span><span id="ramp"></span></div>
+      </div>
+      <a class="open" href="wp2.html">Open WP2 →</a>
+    </div>
+  </section>
+
+  <section class="chapter" id="wp3" data-ch="wp3" aria-labelledby="h-wp3">
+    <div class="panel">
+      <div class="wp"><span class="label">WP3 · Streetscape analysis</span><span class="status">real data</span></div>
+      <h2 id="h-wp3">99,100 street views, read by open models.</h2>
+      <img class="thumb" src="data/wp3_example/front.jpg" alt="Front view on the Bloemgracht, 3 July 2025" loading="lazy">
+      <div class="tags" id="tags"></div>
+      <form class="minisearch" action="ask.html" method="get">
+        <input type="search" name="q" placeholder="Ask the images: bench under trees" aria-label="Ask the images" maxlength="300" required minlength="2">
+        <button type="submit">Ask</button>
+      </form>
+      <a class="open" href="wp3.html">Open WP3 →</a>
+    </div>
+  </section>
+
+  <section class="chapter" id="wp4" data-ch="wp4" aria-labelledby="h-wp4">
+    <div class="panel">
+      <div class="wp"><span class="label">WP4 · Mixed methods</span><span class="status">real data</span></div>
+      <h2 id="h-wp4">Residents' reports, set against the images.</h2>
+      <div class="num">223,592<small>public-space reports, June to October 2025</small></div>
+      <p style="margin-top:1rem" id="wp4text">Here both point the same way.</p>
+      <a class="open" href="wp4.html">Open WP4 →</a>
+    </div>
+  </section>
+
+  <section class="chapter" id="wp5" data-ch="wp5" aria-labelledby="h-wp5">
+    <div class="panel">
+      <div class="wp"><span class="label">WP5 · Spatial modelling</span><span class="status">real data</span></div>
+      <h2 id="h-wp5">Where little green meets low income.</h2>
+      <div class="num">21<small>buurten in a low green-view cluster and among the most low-income households</small></div>
+      <p style="margin-top:1rem">Then the protocol's step model, tested on synthetic data with an answer planted in advance.</p>
+      <a class="open" href="wp5.html">Open WP5 →</a>
+    </div>
+  </section>
+
+  <section class="chapter" id="wp6" data-ch="wp6" aria-labelledby="h-wp6">
+    <div class="panel">
+      <div class="wp"><span class="label">WP6 · Recommender</span><span class="status" data-status="idea">idea</span></div>
+      <h2 id="h-wp6">From a gap to a picture.</h2>
+      <div id="ba"></div>
+      <p style="margin-top:.9rem">Prinseneiland, street trees added by an image model. 47 such pictures; in every one, both audit models see the added feature. <a href="survey.html#wp6" style="color:var(--glow)">Rate them yourself →</a></p>
+      <a class="open" href="wp6.html">Open WP6 →</a>
+    </div>
+  </section>
+
+  <section class="chapter" id="wp7" data-ch="wp7" aria-labelledby="h-wp7">
+    <div class="panel">
+      <div class="wp"><span class="label">WP7 · Open science</span><span class="status">documentation</span></div>
+      <h2 id="h-wp7">Open sources, stated limits.</h2>
+      <div class="rows">
+        <div><span>Sources and models, licences listed</span><b>14</b></div>
+        <div><span>Personal data</span><b>none: mobility is synthetic</b></div>
+        <div><span>Audit and search code</span><b>GeoAI-VLM, open source</b></div>
+      </div>
+      <a class="open" href="wp7.html">Open WP7 →</a>
+    </div>
+  </section>
+</main>
+
+<nav class="chapdots" aria-label="Chapters">
+  <a href="#top" title="Start" data-ch="intro"></a><a href="#wp1" title="WP1" data-ch="wp1"></a><a href="#wp2" title="WP2" data-ch="wp2"></a><a href="#wp3" title="WP3" data-ch="wp3"></a><a href="#wp4" title="WP4" data-ch="wp4"></a><a href="#wp5" title="WP5" data-ch="wp5"></a><a href="#wp6" title="WP6" data-ch="wp6"></a><a href="#wp7" title="WP7" data-ch="wp7"></a>
+</nav>
+<div class="citycredit" id="citycredit">Aerial photo 2025: Beeldmateriaal Nederland via PDOK · Buildings: 3DBAG (TU Delft, 3DGI) · both CC BY 4.0</div>
+
+<div class="after">
+  <section class="section">
+    <div class="label">Reading the labels</div>
+    <div class="cols">
+      <div class="text"><h2>What is real here, and what is not.</h2></div>
+      <div class="prose">
+        <p><span class="status">real data</span> The City's 2025 panoramas, CBS statistics, OpenStreetMap and the City's public-space reports. Model outputs are observations of images, not measurements of health, safety or walkability.</p>
+        <p><span class="status" data-status="synthetic">synthetic</span> Generated here to the protocol's parameters, to test the analysis chain against a known answer. No person was tracked.</p>
+        <p><span class="status" data-status="hypothetical">hypothetical</span> Written by role-play, to be replaced by what workshops say.</p>
+        <p><span class="status" data-status="idea">idea</span> Something I would bring to the project; not part of the protocol.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+const QUOTES = [
+  ["Where can I sit and rest on the way?", "Older residents"],
+  ["Which intersections lack marked crossings?", "Urban planners"],
+  ["How much green do people pass while walking?", "Public health"],
+  ["What would this street look like with trees?", "Designers"],
+  ["Are our streets as good as those elsewhere?", "Residents of low-income buurten"],
+];
+const CH = {
+  intro: { view: { lon: 4.8935, lat: 52.3705, range: 4600, heading: 18, pitch: -38 }, orbit: 1.6 },
+  wp1: { view: { lon: 4.8735, lat: 52.3825, range: 2900, heading: 150, pitch: -42 }, orbit: 1.2, layers: ["outlines"] },
+  wp2: { walk: true },
+  wp3: { view: { lon: 4.880794, lat: 52.374809, range: 420, heading: 249.6, pitch: -42 }, orbit: 1.4, layers: ["panos"] },
+  wp4: { view: { lon: 4.906754, lat: 52.36482, range: 1300, heading: 330, pitch: -44 }, orbit: 1.4, layers: ["wp4"] },
+  wp5: { view: { lon: 4.9008, lat: 52.3770, range: 10500, heading: 0, pitch: -58 }, orbit: 0.9, layers: ["outlines", "priority"] },
+  wp6: { view: { lon: 4.887825, lat: 52.386282, range: 300, heading: 4.3, pitch: -40 }, orbit: 1.2, layers: ["wp6"] },
+  wp7: { view: { lon: 4.8935, lat: 52.368, range: 21000, heading: 0, pitch: -87 }, orbit: 1.8 },
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("ramp").innerHTML = rampHTML();
+  // WP1: rotating questions
+  const q = document.getElementById("quote");
+  let qi = 0;
+  const showQ = () => { q.style.opacity = 0; setTimeout(() => { const [t, g] = QUOTES[qi++ % QUOTES.length]; q.innerHTML = `“${esc(t)}”<br><span class="caption" style="color:#9cadb5">${esc(g)}</span>`; q.style.opacity = 1; }, 350); };
+  showQ(); setInterval(showQ, 4200);
+  // WP3: features in the front view
+  getJSON("data/wp3_example/example.json").then(ex => {
+    const present = Object.entries(ex.views[0].items).filter(([, r]) => r.state === "present").map(([k]) => k.replaceAll("_", " "));
+    document.getElementById("tags").innerHTML = present.slice(0, 5).map(t => `<span>${esc(t)}</span>`).join("") + `<span>+${present.length - 5} more</span>`;
+  });
+  // WP4 and WP6 cards from the chapter data
+  getJSON("data/home/chapters.json").then(c => {
+    document.getElementById("wp4text").textContent = `${c.wp4.buurt}: ${fmt(c.wp4.obstruction_reports_per_km, 1)} reports of obstacles per km of street, and the model reports an obstructed sidewalk at all 36 sampled panoramas. Here both point the same way.`;
+    const id = c.wp6.image_id;
+    beforeAfter(document.getElementById("ba"), `data/wp6_pairs/${id}__before.jpg`, `data/wp6_pairs/${id}__${c.wp6.gap_type}__after.jpg`,
+      { alt: `${c.wp6.street}, ${c.wp6.buurt}`, labels: ["2025 photo", "AI picture"], start: 45 });
+  });
+
+  // chapters: which one is in the middle of the screen
+  const chapters = [...document.querySelectorAll(".chapter")];
+  const dots = [...document.querySelectorAll(".chapdots a")];
+  const navLinks = [...document.querySelectorAll(".topbar nav a")];
+  let current = null, city = null, walk = null;
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) enter(e.target.dataset.ch); }), { rootMargin: "-50% 0px -50% 0px" });
+  chapters.forEach(c => io.observe(c));
+
+  function enter(name) {
+    if (name === current) return;
+    current = name;
+    dots.forEach(d => d.classList.toggle("on", d.dataset.ch === name));
+    navLinks.forEach(a => a.classList.toggle("here", a.getAttribute("href") === `${name}.html`));
+    if (city) go(name, true);
+  }
+  const layers = {};
+  function go(name, animate) {
+    const ch = CH[name];
+    Object.entries(layers).forEach(([k, l]) => { l.show = !!(ch.layers && ch.layers.includes(k)); });
+    if (ch.walk) { if (walk) walk.start(); return; }
+    if (walk) walk.hide();
+    city.rig.orbit(0);
+    const done = () => { if (current === name) city.rig.orbit(matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : ch.orbit || 0); };
+    if (animate) city.rig.fly(ch.view).then(done); else { city.rig.set(ch.view); done(); }
+  }
+
+  const boot = async () => {
+    if (!window.Cesium || !window.City3D) return setTimeout(boot, 150);
+    try {
+      city = await City3D.create("globe", { view: CH.intro.view });
+      window.city = city;
+      const framing = () => (innerWidth > 900 ? city.rig.frame(0.24, 0) : city.rig.frame(0, 0.22));
+      framing(); addEventListener("resize", framing);
+      await addLayers();
+      city.ready.then(() => document.getElementById("city").classList.add("ready"));
+      go(current || "intro", false);
+    } catch (e) {
+      console.error(e);
+      document.getElementById("citycredit").textContent = "The 3D city needs WebGL; the work packages work without it. Aerial photo: PDOK, CC BY 4.0.";
+    }
+  };
+
+  async function addLayers() {
+    const C = Cesium;
+    const [walkData, buurten, panos, chap] = await Promise.all([
+      getJSON("data/layers/flythrough_synthetic.json"), getJSON("data/layers/buurten.geojson"),
+      getJSON("data/layers/wp3_panoramas.json"), getJSON("data/home/chapters.json")]);
+    walk = window.homeWalk = City3D.walk(city, walkData, { seconds: 22, onProgress: (u, s) => { document.getElementById("walked").textContent = `${Math.round(s).toLocaleString("en-GB")} m`; } });
+    document.getElementById("who").textContent = `${walkData.person}, day ${walkData.day} · ${(walk.total / 1000).toFixed(1)} km`;
+    document.getElementById("fixes").textContent = String(walkData.raw_fixes.length);
+
+    const glow = C.Color.fromCssColorString("#63d6c4"), amber = C.Color.fromCssColorString("#ffb547");
+    const rings = f => (f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates).flatMap(p => p);
+    const ds = name => { const d = new C.CustomDataSource(name); city.viewer.dataSources.add(d); d.show = false; layers[name] = d; return d; };
+
+    const outlines = ds("outlines");
+    buurten.features.forEach(f => rings(f).forEach(r => outlines.entities.add({ polyline: {
+      positions: C.Cartesian3.fromDegreesArrayHeights(r.flatMap(([x, y]) => [x, y, 2])), width: 1.4, arcType: C.ArcType.NONE,
+      material: C.Color.WHITE.withAlpha(0.42) } })));
+    const priority = ds("priority");
+    buurten.features.filter(f => f.properties.priority_low_green_low_income).forEach(f => rings(f).forEach((r, k) => {
+      if (k === 0 || f.geometry.type === "MultiPolygon") priority.entities.add({ polygon: { hierarchy: C.Cartesian3.fromDegreesArray(r.flat()), height: 0, material: glow.withAlpha(0.42) } });
+      priority.entities.add({ polyline: { positions: C.Cartesian3.fromDegreesArrayHeights(r.flatMap(([x, y]) => [x, y, 3])), width: 2.5, arcType: C.ArcType.NONE, material: glow } });
+    }));
+    const wp4 = ds("wp4");
+    buurten.features.filter(f => f.properties.buurtcode === chap.wp4.buurtcode).forEach(f => rings(f).forEach(r => {
+      wp4.entities.add({ polygon: { hierarchy: C.Cartesian3.fromDegreesArray(r.flat()), height: 0, material: amber.withAlpha(0.25) } });
+      wp4.entities.add({ polyline: { positions: C.Cartesian3.fromDegreesArrayHeights(r.flatMap(([x, y]) => [x, y, 4])), width: 6, arcType: C.ArcType.NONE,
+        material: new C.PolylineGlowMaterialProperty({ glowPower: 0.3, color: amber }) } });
+    }));
+    const p3 = ds("panos");
+    const c3 = { lon: chap.wp3.lon, lat: chap.wp3.lat };
+    panos.filter(([x, y]) => City3D.metres(c3, { lon: x, lat: y }) < 1600).forEach(([x, y]) => p3.entities.add({
+      position: C.Cartesian3.fromDegrees(x, y, 4), point: { pixelSize: 8, color: glow, outlineColor: C.Color.fromCssColorString("#0a0f12"), outlineWidth: 1.5, disableDepthTestDistance: 700 } }));
+    const pin = (d, lon, lat) => {
+      d.entities.add({ polyline: { positions: C.Cartesian3.fromDegreesArrayHeights([lon, lat, 0, lon, lat, 28]), width: 3, arcType: C.ArcType.NONE, material: C.Color.WHITE } });
+      d.entities.add({ position: C.Cartesian3.fromDegrees(lon, lat, 28), point: { pixelSize: 15, color: glow, outlineColor: C.Color.WHITE, outlineWidth: 3, disableDepthTestDistance: Number.POSITIVE_INFINITY } });
+    };
+    pin(p3, chap.wp3.lon, chap.wp3.lat);
+    pin(ds("wp6"), chap.wp6.lon, chap.wp6.lat);
+  }
+  boot();
+});
+</script>
+</body>
+</html>
