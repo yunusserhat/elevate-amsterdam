@@ -7,7 +7,7 @@ View -> panorama (24,775 points):
   ignored (they are 17-23% of side views and under 0.5% of front and back views);
 * Cityscapes class fractions: mean of the four views (the usual multi-heading view index,
   e.g. green view = vegetation);
-* perception (Place Pulse, ViT primary and ResNet second opinion): mean of the front and back
+* perception (the ELEVATE team's svi_percept model; Place Pulse ViT and ResNet as cross-checks): mean of the front and back
   views, the two along-street views (usable in > 99.5% of cases). Side views score
   systematically lower and are often unusable, so mixing them in would make the score depend
   on how many side views survived (docs/wp3_perception.md).
@@ -37,6 +37,7 @@ OUT = PROJ / "outputs/wp3"
 METRIC = "EPSG:28992"
 SEG_CLASSES = ["vegetation", "terrain", "sky", "building", "road", "sidewalk", "car", "bicycle", "person", "pole"]
 QUESTIONS = ["safety", "lively", "wealthy", "beautiful", "boring", "depressing"]
+SVP = [f"svp_{q}" for q in ("walkability", "bikeability", "pleasantness", "greenness", "safety")]
 
 
 def read(pattern: str, columns=None) -> pd.DataFrame:
@@ -50,7 +51,9 @@ def panoramas() -> gpd.GeoDataFrame:
     seg = read("segmentation/segformer_b5_shard*_part*.parquet", ["image_id"] + [f"{c}_pixel_fraction" for c in SEG_CLASSES])
     perc = read("perception/placepulse_shard*_part*.parquet")
     perc = perc[["image_id"] + [f"{f}_{q}" for f in ("vit", "r50") for q in QUESTIONS]]
-    v = audit.merge(seg, on="image_id", validate="one_to_one").merge(perc, on="image_id", validate="one_to_one")
+    svp = read("perception/svipercept_shard*_part*.parquet", ["image_id"] + SVP)
+    v = audit.merge(seg, on="image_id", validate="one_to_one").merge(perc, on="image_id", validate="one_to_one") \
+             .merge(svp, on="image_id", validate="one_to_one")
     if len(v) != 99100:
         raise ValueError(f"{len(v)} views after joins")
     v["pano_id"], v["view"] = v.image_id.str.rsplit("_", n=1).str[0], v.image_id.str.rsplit("_", n=1).str[1]
@@ -65,7 +68,7 @@ def panoramas() -> gpd.GeoDataFrame:
     seg_cols = [f"{c}_pixel_fraction" for c in SEG_CLASSES]
     out[seg_cols] = v.groupby("pano_id")[seg_cols].mean()
     along = u[u.view.isin(["front", "back"])]
-    pcols = [f"{f}_{q}" for f in ("vit", "r50") for q in QUESTIONS]
+    pcols = [f"{f}_{q}" for f in ("vit", "r50") for q in QUESTIONS] + SVP
     out[pcols] = along.groupby("pano_id")[pcols].mean()
     out["n_views_perception"] = along.groupby("pano_id").size().reindex(out.index, fill_value=0)
 
@@ -104,7 +107,7 @@ def buurt_table(seg: gpd.GeoDataFrame, value_cols: list[str]) -> gpd.GeoDataFram
 def main():
     pano = panoramas()
     states = [c for c in pano.columns if c.startswith("audit_") and c.endswith("_state")]
-    numeric = [f"{c}_pixel_fraction" for c in SEG_CLASSES] + [f"{f}_{q}" for f in ("vit", "r50") for q in QUESTIONS]
+    numeric = [f"{c}_pixel_fraction" for c in SEG_CLASSES] + [f"{f}_{q}" for f in ("vit", "r50") for q in QUESTIONS] + SVP
     pano.to_parquet(OUT / "indicators_panorama.parquet", index=False)
 
     segments = gpd.read_parquet(PROJ / "data/derived/segments.parquet")
@@ -114,7 +117,7 @@ def main():
     meta["rules"]["panorama_rules"] = {
         "audit_state": "present if any usable view reports present; absent if none and >= 1 usable view absent; else not_visible",
         "segmentation": "mean of the four views",
-        "perception": "mean of the usable front and back views",
+        "perception": "mean of the usable front and back views (svi_percept; Place Pulse ViT and ResNet)",
         "audit": "Qwen/Qwen3.5-4B, active_mobility_audit_v2, processing_id 9fa2547ea019",
     }
     write_segment_parquet(seg, OUT / "indicators_segment.parquet", meta)

@@ -46,7 +46,7 @@
         <p>Spatial clusters of green view (LISA). Outlined: low-green clusters among the most low-income households.</p>
         <div class="big">21<small>priority buurten for WP6</small></div></div></div>
       <div class="step"><div class="card"><div class="count"><span>04 / 06</span><span class="status">real</span></div><h3>Do features follow income?</h3>
-        <p>Barely, for the low-income share (|ρ| ≤ 0.13). With mean income: richer buurten show less green but more crossings, seating and lively scenes.</p>
+        <p>Barely, for the low-income share (|ρ| ≤ 0.13). With mean income: richer buurten show less green but more crossings and seating, and the team's perception model rates them more walkable, pleasant and safe.</p>
         <div id="measure"></div></div></div>
       <div class="step"><div class="card"><div class="count"><span>05 / 06</span><span class="status" data-status="synthetic">synthetic</span></div><h3>A planted effect, found?</h3>
         <p>Steps made twice: no effect (A), and 0.14 planted (B). Adding park-stay minutes pulls both down. A DAG names the variables, not their form.</p></div></div>
@@ -83,8 +83,9 @@
 <script>
 const LABEL = {
   low_income_households: "Low-income households, %", green_view: "Green view", seating: "Seating", pedestrian_crossing: "Crossings",
-  perceived_lively: "Lively (stand-in)", street_trees: "Street trees", shade_on_walkway: "Shade", cycle_infrastructure: "Cycle infrastructure",
-  perceived_beautiful: "Beautiful (stand-in)", perceived_safe: "Safe (stand-in)", sidewalk: "Sidewalk", street_light_pole: "Street light", lisa_green_view: "Green-view clusters",
+  street_trees: "Street trees", shade_on_walkway: "Shade", cycle_infrastructure: "Cycle infrastructure",
+  sidewalk: "Sidewalk", street_light_pole: "Street light", lisa_green_view: "Green-view clusters",
+  perceived_walkable: "Walkable (ELEVATE model)", perceived_safe_elevate: "Safe (ELEVATE model)", perceived_pleasant: "Pleasant (ELEVATE model)",
 };
 const INCOME = ["#f3e6d3", "#e6c79f", "#d6a36b", "#c27d3e", "#a85d00", "#7a4300"];
 const LISA = { "low-low": "#a85d00", "high-high": "#0d6b63", "low-high": "#e6c79f", "high-low": "#a6cfc0", "not significant": "#dfe4e6" };
@@ -106,7 +107,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (key === "lisa_green_view") return Object.entries(LISA).map(([k, c]) => `<div>${k} <span class="sw" style="background:${c}"></span></div>`).join("");
     const vals = b.features.map(f => f.properties[key]).filter(v => v !== null);
     const ramp = key === "low_income_households" ? INCOME : RAMP;
-    const f = v => key === "low_income_households" ? `${fmt(v, 1)}%` : key.startsWith("perceived") ? fmt(v, 1) : pct(v, 0);
+    const f = v => key === "low_income_households" ? `${fmt(v, 1)}%` : key.startsWith("perceived") ? fmt(v, 2) : pct(v, 0);
     return `<div>${LABEL[key]} ${rampHTML(ramp)}</div><div>${f(Math.min(...vals))} → ${f(Math.max(...vals))} · quantiles</div>`;
   }
   const priorityStyle = { color: "#15191c", weight: 2.6, fill: false };
@@ -120,7 +121,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // chart 1: gradients with income
   let measure = "mean_income_per_inhabitant";
-  const FEATS = ["green_view", "street_trees", "shade_on_walkway", "seating", "pedestrian_crossing", "cycle_infrastructure", "sidewalk", "street_light_pole", "perceived_lively", "perceived_safe", "perceived_beautiful"];
+  const FEATS = ["green_view", "street_trees", "shade_on_walkway", "seating", "pedestrian_crossing", "cycle_infrastructure", "sidewalk", "street_light_pole", "perceived_walkable", "perceived_safe_elevate", "perceived_pleasant"];
   function drawGrad() {
     const W = 760, H = 460, L0 = 200, R0 = 730, top = 40, row = (H - top - 50) / FEATS.length;
     const x = v => L0 + (v + 0.6) / 1.2 * (R0 - L0);
@@ -196,8 +197,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const eprio = L.geoJSON({ type: "FeatureCollection", features: b.features.filter(f => f.properties.priority_low_green_low_income) }, { style: priorityStyle, interactive: false });
   let ekey = "low_income_households";
   const eshow = key => { ekey = key; elayer.setStyle(styler(key)); document.getElementById("elegend").innerHTML = legendFor(key); if (key === "lisa_green_view") eprio.addTo(emap); else eprio.remove(); };
-  const KEYS = ["low_income_households", "green_view", "lisa_green_view", "seating", "pedestrian_crossing", "street_trees", "perceived_lively"];
-  seg(document.getElementById("layerseg"), KEYS.map(k => [k, LABEL[k].replace(", %", "").replace(" (stand-in)", "*")]), ekey, eshow);
+  const KEYS = ["low_income_households", "green_view", "lisa_green_view", "seating", "pedestrian_crossing", "street_trees", "perceived_walkable"];
+  seg(document.getElementById("layerseg"), KEYS.map(k => [k, LABEL[k].replace(", %", "").replace(" (ELEVATE model)", "")]), ekey, eshow);
   eshow(ekey);
   elayer.on("click", e => {
     const p = e.layer.feature.properties, v = p[ekey];

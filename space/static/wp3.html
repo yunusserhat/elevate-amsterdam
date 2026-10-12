@@ -87,8 +87,9 @@
       <div class="step"><div class="card"><div class="count"><span>06 / 07</span></div><h3>Checked by a larger model.</h3>
         <p>A 27B model re-read 500 views. Eight features agree well enough to map.</p>
         <div class="big">κ 0.77<small>agreement on presence, all features</small></div></div></div>
-      <div class="step"><div class="card"><div class="count"><span>07 / 07</span></div><h3>Green, street by street.</h3>
-        <p>Vegetation share of the views, from segmentation, for 19,410 street segments.</p>
+      <div class="step"><div class="card"><div class="count"><span>07 / 07</span></div><h3>Street by street.</h3>
+        <p>19,410 street segments: green view from segmentation, or walkability from the team's own perception model.</p>
+        <div id="seglayer" style="margin:.5rem 0"></div>
         <p><a class="btn go" href="ask.html" style="margin-top:.4rem">Now ask the images →</a></p></div></div>
     </div>
   </section>
@@ -97,11 +98,11 @@
   <section class="section">
     <div class="label">Perceived qualities</div>
     <div class="cols">
-      <div class="text"><h2>A stand-in, with its limits.</h2>
+      <div class="text"><h2>The team's own model, on every view.</h2>
         <p style="margin:.2rem 0 0"><a class="btn" href="survey.html#wp3" style="color:var(--accent)">Compare streets yourself →</a></p>
-        <div class="stat"><div class="num">0.15–0.74</div><div class="sub">agreement between two open Place Pulse models (Spearman)</div></div></div>
+        <div class="stat"><div class="num">22,637</div><div class="sub">ratings by 331 people in Amsterdam behind the model</div></div></div>
       <div class="prose">
-        <p>ELEVATE trains its own perception models; they are not public. Two open models trained on Place Pulse 2.0 stand in, and they agree only moderately: a perception score depends on the model behind it.</p>
+        <p>ELEVATE's perception model comes from the team's <a href="https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/percept">Percept</a> survey in Amsterdam (Danish et al. 2025) and is <a href="https://huggingface.co/Spatial-Data-Science-and-GEO-AI-Lab/svi_percept">open</a>. It scored all 99,100 views for walkability, bikeability, pleasantness, greenness and safety, from 1 to 5. Two Place Pulse models, trained outside Amsterdam, are kept as cross-checks. Its scores move with measures made without it: walkability separates views with and without a sidewalk (AUC 0.94), greenness follows the segmentation's green view (ρ 0.60 per panorama), and the Place Pulse cross-checks agree moderately (ρ 0.51–0.59).</p>
         <div id="perception"></div>
       </div>
     </div>
@@ -182,7 +183,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   const loadSegs = () => segsP || (segsP = getJSON("data/layers/segments.geojson").then(g => {
     const br = quantileBreaks(g.features.map(f => f.properties.green_view));
     groups.green = L.geoJSON(g, { renderer, style: f => ({ color: rampColour(f.properties.green_view, br) || "#c9d1d6", weight: 2.4, opacity: 1 }) });
+    const bw = quantileBreaks(g.features.map(f => f.properties.perceived_walkable).filter(v => v != null));
+    groups.walk = L.geoJSON(g, { renderer, style: f => ({ color: rampColour(f.properties.perceived_walkable, bw) || "#c9d1d6", weight: 2.4, opacity: 1 }) });
   }));
+  // step 7: green view or the team's walkability, one segmented control
+  let segLayer = "green";
+  const SEGL = {
+    green: { legend: () => `<div>Green view ${rampHTML()}</div><div>less → more</div>`, cap: "Segmentation: SegFormer-B5, Cityscapes classes" },
+    walk: { legend: () => `<div>Walkable, ELEVATE model ${rampHTML()}</div><div>less → more · quantiles</div>`,
+            cap: "Perception: ELEVATE team's svi_percept model, GPL-3.0" },
+  };
+  const showSegLayer = k => { segLayer = k; only(k); legend.innerHTML = SEGL[k].legend(); cap.textContent = SEGL[k].cap; };
 
   // the panorama splitting into four views, driven by scroll
   const row = document.getElementById("row");
@@ -203,7 +214,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     closeUp(z);
   };
   const only = name => {
-    ["pts", "green"].forEach(k => { if (groups[k] && map.hasLayer(groups[k])) map.removeLayer(groups[k]); });
+    ["pts", "green", "walk"].forEach(k => { if (groups[k] && map.hasLayer(groups[k])) map.removeLayer(groups[k]); });
     if (name && groups[name]) groups[name].addTo(map);
   };
 
@@ -222,21 +233,21 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (i === 4) { showLayer(stage, "focus"); cap.textContent = "Front view · Qwen3.5-4B, template v2"; }
       if (i === 5) { showLayer(stage, "tiers"); legend.innerHTML = Object.entries(TIER_COL).map(([k, c]) => `<div>${k === "rare" ? "too rare" : "tier " + k} <span class="sw" style="background:${c}"></span></div>`).join(""); }
       if (i === 6) {
-        showLayer(stage, "map"); pin.remove(); closeUp(0); await loadSegs(); only("green");
+        showLayer(stage, "map"); pin.remove(); closeUp(0); await loadSegs(); showSegLayer(segLayer);
         map.setView([52.366, 4.893], 13.4, { animate: false });
-        legend.innerHTML = `<div>Green view ${rampHTML()}</div><div>less → more</div>`;
-        cap.textContent = "Segmentation: SegFormer-B5, Cityscapes classes";
       }
     },
     onProgress: (i, p) => { if (i === 1) zoomTo(p); if (i === 3) split(p); },
   });
+  seg(document.getElementById("seglayer"), [["green", "Green view"], ["walk", "Walkable"]], segLayer, async k => { await loadSegs(); showSegLayer(k); });
 
 
   // tables
-  getJSON("data/tables/wp3_perception_agreement.json").then(p => table(document.getElementById("perception"), p, [
-    { key: "question", label: "Question" },
-    { key: "vit_vs_r50_view", label: "Two models, per view", num: true, render: r => fmt(r.vit_vs_r50_view) },
-    { key: "vit_vs_r50_pano", label: "Per panorama", num: true, render: r => fmt(r.vit_vs_r50_pano) },
+  getJSON("data/tables/wp3_svp_agreement.json").then(p => table(document.getElementById("perception"), p, [
+    { key: "quality", label: "ELEVATE model" },
+    { key: "compared_with", label: "Compared with", render: r => esc(r.compared_with) },
+    { key: "per_view", label: "Per view", num: true, render: r => `${r.measure === "auc" ? "AUC" : "ρ"} ${fmt(r.per_view)}` },
+    { key: "per_panorama", label: "Per panorama", num: true, render: r => r.per_panorama == null ? "–" : `ρ ${fmt(r.per_panorama)}` },
   ]));
   getJSON("data/tables/wp3_coverage_by_road_group.json").then(c => table(document.getElementById("coverage"),
     c.filter(r => r.network_length_m > 1000).sort((a, b) => b.network_length_m - a.network_length_m), [

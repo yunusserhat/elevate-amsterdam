@@ -1,4 +1,4 @@
-# Licences and attribution (checked 2026-10-10; 3D sources added 2026-10-11)
+# Licences and attribution (checked 2026-10-10; 3D sources added 2026-10-11; perception model 2026-10-12)
 
 | Material | Licence | Use here | Attribution / conditions |
 |---|---|---|---|
@@ -13,8 +13,10 @@
 | google/embeddinggemma-2 | Apache-2.0 | retrieval index and search | — |
 | Qwen/Qwen-Image-2.1-Turbo | Qwen Research Licence: non-commercial research or evaluation only | ~50 before/after visualisations (WP6) | Non-commercial demo only. Label every image "AI-generated visualisation, not a design proposal". The model weights are not redistributed. |
 | nvidia/segformer-b5-finetuned-cityscapes-1024-1024 | other (NVIDIA research licence) | Cityscapes class fractions | non-commercial research use |
-| Jiani11/human-perception-place-pulse (Place Pulse 2.0, ViT-B/16) | Apache-2.0 (model card, GitHub repo) | perceived qualities, primary (WP3, step 2.4) | cite Hou et al. 2024 (Global Streetscapes) and Dubey et al. 2016 (Place Pulse 2.0); stand-in for ELEVATE's own perception model |
+| Jiani11/human-perception-place-pulse (Place Pulse 2.0, ViT-B/16) | Apache-2.0 (model card, GitHub repo) | perceived qualities, cross-check (WP3, step 2.4) | cite Hou et al. 2024 (Global Streetscapes) and Dubey et al. 2016 (Place Pulse 2.0); cross-check for the team's own model (step 2.4b) |
 | seshing/placepulse (Place Pulse 2.0, ResNet-50) | no licence file or model card; used by ZenSVI (MIT code) | perceived qualities, second opinion, internal (decision 2026-10-11) | weights not redistributed; cite ZenSVI and Dubey et al. 2016 |
+| Spatial-Data-Science-and-GEO-AI-Lab/svi_percept (model data on Hugging Face; Python package on GitHub) | GPL-3.0 (model card, repository) | perceived walkability, bikeability, pleasantness, greenness and safety for all views (WP3, step 2.4b) | cite Danish, Labib, Ricker and Helbich 2025 (Percept, CEUS 116); the ELEVATE team's own model |
+| apple/DFN5B-CLIP-ViT-H-14-378 (OpenCLIP ViT-H-14-378-quickgelu, dfn5b) | Apple Machine Learning Research Model licence: scientific research only | image features for svi_percept | research use only; weights not redistributed |
 | Synthetic GPS / mobility data (WP2) | own, generated | pipeline demonstration | always labelled "synthetic" |
 
 The site (www.yunusserhat.com/elevate) and its search API (Hugging Face Space) are a non-commercial research demonstration. Hosted images: one example panorama with its four views (WP3), the 47 WP6 before/after pairs and the aerial poster, all with attribution; every other street image loads from the City's server. Model outputs are

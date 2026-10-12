@@ -28,8 +28,9 @@ TIERS = {"sidewalk": "A", "pedestrian_crossing": "A", "seating": "A", "street_tr
          "cycle_infrastructure": "B", "sidewalk_obstruction": "B", "active_frontage": "B", "other_greenery": "B",
          "litter": "C", "sidewalk_parking": "C", "accessibility_barrier": "C",
          "surface_damage": "rare", "traffic_calming": "rare", "sidewalk_gap": "rare"}
-SEG_INDICATORS = {"green_view": "vegetation_pixel_fraction__mean", "perceived_beautiful": "vit_beautiful__mean",
-                  "perceived_safe": "vit_safety__mean", "perceived_lively": "vit_lively__mean"}
+# street-segment layer: what the pages map. Walkability comes from the ELEVATE team's own Amsterdam
+# perception model (svi_percept, 1-5); the Place Pulse cross-checks are compared in tables, not mapped.
+SEG_INDICATORS = {"green_view": "vegetation_pixel_fraction__mean", "perceived_walkable": "svp_walkability__mean"}
 SEG_INDICATORS.update({k: f"audit_{k}_state__present_share" for k, t in TIERS.items() if t in ("A", "B")})
 
 
@@ -90,6 +91,8 @@ def main():
         "outputs/wp3/eval/stability.csv": "wp3_stability.csv",
         "outputs/wp3/eval/segmentation_auc.csv": "wp3_segmentation_auc.csv",
         "outputs/wp3/perception_qc/agreement.csv": "wp3_perception_agreement.csv",
+        "outputs/wp3/perception_qc/svp_agreement.csv": "wp3_svp_agreement.csv",
+        "outputs/wp3/perception_qc/svp_summary.csv": "wp3_svp_summary.csv",
         "outputs/wp3/indicators_summary.json": "wp3_indicators_summary.json",
         "outputs/wp3/coverage_by_road_group_2025.csv": "wp3_coverage_by_road_group.csv",
         "outputs/wp4/signalen_triangulation.csv": "wp4_signalen_triangulation.csv",
@@ -129,6 +132,9 @@ def main():
     segf = segf[segf.image_id.str.startswith(ex)]
     perc = pd.concat([pd.read_parquet(f) for f in sorted(glob.glob(str(PROJ / "outputs/wp3/perception/placepulse_shard*_part*.parquet")))])
     perc = perc[perc.image_id.str.startswith(ex)]
+    svpf = pd.concat([pd.read_parquet(f) for f in sorted(glob.glob(str(PROJ / "outputs/wp3/perception/svipercept_shard*_part*.parquet")))])
+    svp_ids = {"model": svpf.svp_model.iloc[0], "clip": svpf.svp_clip.iloc[0]}
+    svpf = svpf[svpf.image_id.str.startswith(ex)]
     views = []
     for v in ("front", "right", "back", "left"):
         iid = f"{ex}_{v}"
@@ -137,11 +143,13 @@ def main():
         items = json.loads(a.parsed_json)["items"]
         s = segf[segf.image_id == iid].iloc[0]
         q = perc[perc.image_id == iid].iloc[0]
+        sv = svpf[svpf.image_id == iid].iloc[0]
         r = rec[rec.image_id == iid].iloc[0]
         views.append({"view": v, "image": f"data/wp3_example/{v}.jpg", "heading_deg": round(float(r.heading_deg), 1),
                       "city_image": r.city_image, "items": items,
                       "segmentation": {c: round(float(s[f"{c}_pixel_fraction"]), 3) for c in ["vegetation", "building", "sky", "road", "sidewalk", "car", "bicycle"]},
-                      "perception": {k: round(float(q[f"vit_{k}"]), 2) for k in ["safety", "lively", "wealthy", "beautiful", "boring", "depressing"]}})
+                      "perception": {k: round(float(q[f"vit_{k}"]), 2) for k in ["safety", "lively", "wealthy", "beautiful", "boring", "depressing"]},
+                      "perception_elevate": {k: round(float(sv[f"svp_{k}"]), 2) for k in ["walkability", "bikeability", "pleasantness", "greenness", "safety"]}})
     r0 = rec[rec.image_id == f"{ex}_front"].iloc[0]
     (OUT / "wp3_example/example.json").write_text(json.dumps({"pano_id": ex, "buurt": r0.buurtnaam, "lat": r0.lat, "lon": r0.lon,
         "timestamp": str(r0.timestamp), "model": "Qwen/Qwen3.5-4B, template active_mobility_audit_v2", "views": views,
@@ -189,8 +197,9 @@ def main():
                   "processing_id": audit["processing_id"], "package": "GeoAI-VLM"},
         "reference": {"model": "Qwen/Qwen3.8-27B-FP8", "use": "agreement checks, WP6 candidate confirmation and edit checks"},
         "segmentation": "nvidia/segformer-b5-finetuned-cityscapes-1024-1024",
-        "perception": {"primary": "Jiani11/human-perception-place-pulse@402164b5", "second": "seshing/placepulse@1d7f85c4",
-                       "note": "stand-in for ELEVATE's own perception model"},
+        "perception": {"elevate": f"{svp_ids['model']} (GPL-3.0); CLIP {svp_ids['clip']} (apple/DFN5B-CLIP-ViT-H-14-378, Apple ML research licence)",
+                       "primary": "Jiani11/human-perception-place-pulse@402164b5", "second": "seshing/placepulse@1d7f85c4",
+                       "note": "the ELEVATE team's own Amsterdam model (Percept survey; Danish et al. 2025); the two Place Pulse models are cross-checks"},
         "embedding": json.loads((idx / "index.json").read_text())["metadata"],
         "image_edits": {"model": "Qwen/Qwen-Image-2.1-Turbo@d65dbc9a", "licence": "Qwen Research Licence (non-commercial)",
                         "label": "AI-generated visualisation, not a design proposal"},

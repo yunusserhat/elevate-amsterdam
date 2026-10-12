@@ -61,12 +61,22 @@ INDICATORS = {
     "perceived_lively": ("vit_lively__mean", "perceived lively (Place Pulse model)"),
     "sample_coverage": ("covered_share", "network share observed in the sample"),
     "archive_coverage": ("archive_covered_share", "network share covered by the 2025 archive"),
+    # the ELEVATE team's own Amsterdam perception model (svi_percept, 1-5); appended last so that the
+    # bootstrap draws of the indicators above stay as they were
+    "perceived_walkable": ("svp_walkability__mean", "walkability (ELEVATE team's svi_percept model)"),
+    "perceived_bikeable": ("svp_bikeability__mean", "bikeability (ELEVATE team's svi_percept model)"),
+    "perceived_pleasant": ("svp_pleasantness__mean", "pleasantness (ELEVATE team's svi_percept model)"),
+    "perceived_green": ("svp_greenness__mean", "greenness (ELEVATE team's svi_percept model)"),
+    "perceived_safe_elevate": ("svp_safety__mean", "safety (ELEVATE team's svi_percept model)"),
 }
 SEED = 20261011
 LISA_LABELS = {1: "high-high", 2: "low-high", 3: "low-low", 4: "high-low"}
 
 
-def fetch_cbs() -> pd.DataFrame:
+def fetch_cbs(refresh: bool = False) -> pd.DataFrame:
+    cached = PROJ / "data/raw/cbs_85618NED_amsterdam_buurten.parquet"
+    if cached.exists() and not refresh:  # the copy fetched for the first run, so reruns stay reproducible
+        return pd.read_parquet(cached)
     params = {"$format": "json", "$filter": "startswith(WijkenEnBuurten,'BU0363')",
               "$select": ",".join(["WijkenEnBuurten"] + list(CBS_FIELDS))}
     rows = requests.get(CBS, params=params, timeout=120).json()["value"]
@@ -151,7 +161,7 @@ def main():
             ("low_income_households", "Low-income households (%), CBS 2023", "Purples"),
             ("green_view", "Green view: vegetation share of street views (model)", "Greens"),
             ("seating", "Share of views with seating reported (model, tier A)", "Oranges"),
-            ("perceived_beautiful", "Perceived beautiful, Place Pulse model (stand-in)", "Blues"),
+            ("perceived_walkable", "Walkability, ELEVATE team's model (svi_percept)", "Blues"),
             ("sample_coverage", "Share of walk/cycle network observed (sample)", "Greys"),
             ("lisa_green_view", "LISA clusters of green view (p < 0.05, exploratory)", None)]):
         base.plot(ax=ax, color="0.93", edgecolor="white", linewidth=0.2)

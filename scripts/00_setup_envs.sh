@@ -6,6 +6,8 @@ for e in vlm embed image; do [ -d envs/$e ] || uv venv --python 3.12 envs/$e; do
 echo "== vlm";   uv pip install --python envs/vlm/bin/python -e "GeoAI-VLM[vlm,segment,network]" mapbox-vector-tile num2words pytest 2>&1 | tail -2
 echo "== embed"; uv pip install --python envs/embed/bin/python -e "GeoAI-VLM[sentence-transformers,segment,network]" "transformers>=5.19" pytest 2>&1 | tail -2
 echo "== image"; uv pip install --python envs/image/bin/python "git+https://github.com/huggingface/diffusers.git" "transformers>=5.17" accelerate pillow torch torchvision -e "GeoAI-VLM[segment]" 2>&1 | tail -2
+[ -d envs/percept ] || uv venv --python 3.12 envs/percept
+echo "== percept"; uv pip install --python envs/percept/bin/python "torch==2.14.1" "torchvision==0.29.1" "open_clip_torch>=2.32" pandas pyarrow "huggingface_hub>=0.34" pillow scikit-learn "git+https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/svi_percept" 2>&1 | tail -2
 for e in vlm embed image; do envs/$e/bin/python -c "import torch, transformers; print('$e', 'torch', torch.__version__, '| transformers', transformers.__version__, '| cuda', torch.cuda.is_available(), torch.cuda.device_count())"; done
 envs/vlm/bin/python -c "import vllm; print('vllm', vllm.__version__)"
 envs/embed/bin/python -c "import sentence_transformers, torchvision; print('st', sentence_transformers.__version__, 'torchvision', torchvision.__version__)"

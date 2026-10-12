@@ -70,7 +70,7 @@ stratified sampling, with neighbourhood ambassadors for underserved groups. 2026
 **Our demonstration:**
 - The City of Amsterdam's 2025 panoramas: 25k panoramas × 4 cube faces.
 - GeoAI-VLM audit with 19 observable features, plus Cityscapes segmentation.
-- A perception stand-in, labelled as standing in for their model.
+- The team's own Amsterdam perception model (svi_percept, public on Hugging Face; from the Percept survey, Danish et al. 2025) on all views, with two Place Pulse models as cross-checks. (Until 2026-10-12 the demonstration used the Place Pulse models as a stand-in, wrongly believing the team's model was not public.)
 - EmbeddingGemma 2 index.
 - Segment, buurt and city aggregation with coverage.
 - Validation tooling: agreement checks and a seeded stratified sample ready for expert labelling.
