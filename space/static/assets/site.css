@@ -124,11 +124,15 @@ input[type="search"], input[type="text"] { font: 400 1rem var(--sans); color: va
 /* ---------- home: one 3D city behind the page ---------- */
 body.home { background: var(--night); color: var(--night-ink); }
 #city { position: fixed; inset: 0; z-index: 0; background: var(--night) center / cover no-repeat; pointer-events: none; }
-#city .poster { position: absolute; inset: 0; background: center / cover no-repeat; filter: saturate(0.7) brightness(0.55); transform: scale(1.04); transition: opacity 1.2s; }
+#city .poster { position: absolute; inset: 0; background: center / cover no-repeat; filter: saturate(0.7) brightness(0.55); transform: scale(1.04); transition: opacity 0.6s; }
 #city.ready .poster { opacity: 0; }
-#city .globe { position: absolute; inset: 0; opacity: 0; transition: opacity 1.2s; }
+#city .globe { position: absolute; inset: 0; opacity: 0; transition: opacity 0.6s; }
 #city.ready .globe { opacity: 1; }
 #city .cesium-widget-credits, #city .cesium-viewer-bottom { display: none !important; }
+.buildcount { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 3; pointer-events: none; font: 500 0.76rem/1 var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--night-ink); text-shadow: 0 1px 10px rgba(0, 0, 0, 0.55); transition: opacity 0.8s; }
+.buildcount span { color: var(--glow); }
+.buildcount.done { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .buildcount { display: none; } }
 .cityveil { position: fixed; inset: 0; z-index: 1; pointer-events: none; background:
   linear-gradient(90deg, rgba(10, 15, 18, 0.82) 0%, rgba(10, 15, 18, 0.45) 30%, rgba(10, 15, 18, 0) 55%),
   linear-gradient(0deg, rgba(10, 15, 18, 0.6) 0%, rgba(10, 15, 18, 0) 22%); }

@@ -48,6 +48,23 @@ def geojson(gdf: gpd.GeoDataFrame, path: Path, tolerance_m: float):
     path.write_text(json.dumps(js, separators=(",", ":")))
 
 
+def lite_lines(gdf: gpd.GeoDataFrame, keys: list[str], path: Path, tolerance_m: float = 1.0, digits: int = 3):
+    """Street segments as compact JSON for the pages (step 10.6): {o, q, keys, f}, where each row of f holds the
+    values for keys and then the line's coordinates as integers in 1/q degree from o, delta-encoded. The pages draw
+    one polyline per colour class from it, instead of one Leaflet layer per segment from GeoJSON."""
+    q = 100000  # 1e-5 degree: about 0.7 m east-west and 1.1 m north-south here
+    g = gdf.to_crs("EPSG:28992")
+    g["geometry"] = g.geometry.simplify(tolerance_m, preserve_topology=True)
+    g = g.to_crs(4326)
+    lon0, lat0 = round(float(g.total_bounds[0]), 3), round(float(g.total_bounds[1]), 3)
+    rows = []
+    for vals, geom in zip(g[keys].itertuples(index=False), g.geometry):
+        for part in ([geom] if geom.geom_type == "LineString" else list(geom.geoms)):
+            xy = np.round((np.asarray(part.coords)[:, :2] - [lon0, lat0]) * q).astype(int)
+            rows.append([None if pd.isna(v) else round(float(v), digits) for v in vals] + np.vstack([xy[:1], np.diff(xy, axis=0)]).ravel().tolist())
+    path.write_text(json.dumps({"o": [lon0, lat0], "q": q, "keys": keys, "f": rows}, separators=(",", ":")))
+
+
 def main():
     for d in ("index", "layers", "tables", "wp6_pairs"):
         (OUT / d).mkdir(parents=True, exist_ok=True)
@@ -70,7 +87,9 @@ def main():
             "covered_length_share": "covered_share"}
     cols.update({v: k for k, v in SEG_INDICATORS.items()})
     seg = seg[list(cols) + ["geometry"]].rename(columns=cols)
-    geojson(seg, OUT / "layers/segments.geojson", 1.0)
+    # WP3 maps only green view and walkability: a compact file instead of 11 MB of GeoJSON (step 10.6)
+    lite_lines(seg, ["green_view", "perceived_walkable"], OUT / "layers/segments_lite.json")
+    (OUT / "layers/segments.geojson").unlink(missing_ok=True)
     eq = gpd.read_parquet(PROJ / "outputs/wp5/buurt_equity.parquet")
     sig = gpd.read_parquet(PROJ / "outputs/wp4/signalen_by_buurt.parquet")
     sig = sig[["buurtcode"] + [c for c in sig.columns if c.startswith("reports_") and c.endswith("_per_km")]]
@@ -78,7 +97,8 @@ def main():
     eq["low_income_quintile"] = eq.low_income_quintile.astype(str)
     geojson(eq, OUT / "layers/buurten.geojson", 5.0)
     gaps = gpd.read_parquet(PROJ / "outputs/wp6/gap_segments.parquet")
-    geojson(gaps, OUT / "layers/gap_segments.geojson", 1.0)
+    lite_lines(gaps, [f"gap_{k}" for k in ("crossing", "trees", "seating", "greenery", "cycle")], OUT / "layers/gap_segments_lite.json")
+    (OUT / "layers/gap_segments.geojson").unlink(missing_ok=True)
 
     # tables
     copies = {

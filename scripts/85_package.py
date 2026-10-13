@@ -19,7 +19,7 @@ from pathlib import Path
 PROJ = Path(__file__).resolve().parents[1]
 SPACE = PROJ / "space"
 DIST = PROJ / "dist"
-SITE_DATA = ["layers", "tables", "wp3_example", "wp6_pairs", "home", "survey", "provenance.json"]
+SITE_DATA = ["layers", "tables", "wp3_example", "wp6_pairs", "home", "survey", "3dbag", "provenance.json"]   # 3dbag: step 10.5
 API_LINE = 'const API_BASE = "";'
 
 SPACE_README = """---

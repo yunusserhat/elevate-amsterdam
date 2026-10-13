@@ -96,18 +96,25 @@ const COLS = [["no view with the gap", "#dfe4e6"], ["some views", "#e6c79f"], ["
 document.addEventListener("DOMContentLoaded", async () => {
   const stage = document.querySelector("#s1 .stage");
   const legend = document.getElementById("legend"), cap = document.getElementById("stagecap");
-  const [gaps, sum, conf, ver, b, chap, pairs] = await Promise.all([getJSON("data/layers/gap_segments.geojson"), getJSON("data/tables/wp6_gaps_summary.json"),
+  const [gaps, sum, conf, ver, b, chap, pairs] = await Promise.all([getJSON("data/layers/gap_segments_lite.json"), getJSON("data/tables/wp6_gaps_summary.json"),
     getJSON("data/tables/wp6_confirm_summary.json"), getJSON("data/tables/wp6_verify_summary.json"), getJSON("data/layers/buurten.geojson"),
     getJSON("data/home/chapters.json"), getJSON("data/tables/wp6_edit_verification.json")]);
 
   const map = baseMap("map", { zoom: 12, center: [52.365, 4.895], zoomSnap: 0.25 });
   const renderer = L.canvas({ padding: 0.3 });
   let gap = "seating";
-  const style = f => { const v = f.properties[`gap_${gap}`]; const i = v === null || v === undefined ? 0 : v <= 0.001 ? 0 : v >= 0.999 ? 2 : 1; return { color: COLS[i][1], weight: i ? 2.8 : 1.2, opacity: i ? 1 : 0.5 }; };
-  const layer = L.geoJSON(gaps, { renderer, style }).addTo(map);
+  // street gaps: one polyline per class (none, part of the views, all views) for the chosen gap type
+  const lines = decodeLines(gaps);
+  const gapClass = v => (v === null || v === undefined ? 0 : v <= 0.001 ? 0 : v >= 0.999 ? 2 : 1);
+  let layer = null;
+  const drawGaps = () => {
+    if (layer) map.removeLayer(layer);
+    const i = gaps.keys.indexOf(`gap_${gap}`);
+    layer = classLines(lines, l => gapClass(l.v[i]), c => ({ color: COLS[c][1], weight: c ? 2.8 : 1.2, opacity: c ? 1 : 0.5 }), renderer).addTo(map);
+  };
   const prio = L.geoJSON({ type: "FeatureCollection", features: b.features.filter(f => f.properties.priority_low_green_low_income) },
     { renderer, style: { color: "#0d6b63", weight: 2.5, fillColor: "#0d6b63", fillOpacity: 0.12 } });
-  const setGap = g => { gap = g; layer.setStyle(style); document.getElementById("gapshare").firstChild.textContent = pct(sum.gap_share[g], 0); document.querySelector("#gapshare small").textContent = `of usable views along the street: ${GAP_DEF[g]}`; };
+  const setGap = g => { gap = g; drawGaps(); if (map.hasLayer(prio)) { prio.remove(); prio.addTo(map); } document.getElementById("gapshare").firstChild.textContent = pct(sum.gap_share[g], 0); document.querySelector("#gapshare small").textContent = `of usable views along the street: ${GAP_DEF[g]}`; };
   seg(document.getElementById("gapseg"), ["seating", "crossing", "greenery", "cycle", "trees"].map(k => [k, NAMES[k]]), gap, setGap);
   setGap(gap);
 

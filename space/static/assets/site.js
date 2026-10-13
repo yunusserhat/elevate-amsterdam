@@ -206,6 +206,28 @@ function rampColour(x, breaks, ramp = RAMP) {
   while (i < breaks.length && x > breaks[i]) i++;
   return ramp[i];
 }
+function rampIndex(x, breaks) {
+  let i = 0;
+  while (i < breaks.length && x > breaks[i]) i++;
+  return i;
+}
+/* Compact street layers (data/layers/*_lite.json): rows of [values for keys..., x0, y0, dx, dy, ...] with
+   coordinates in 1/q degree from o, delta-encoded within each line. */
+function decodeLines(d) {
+  const k = d.keys.length;
+  return d.f.map(r => {
+    const pts = [];
+    let x = 0, y = 0;
+    for (let i = k; i < r.length; i += 2) { x += r[i]; y += r[i + 1]; pts.push([d.o[1] + y / d.q, d.o[0] + x / d.q]); }
+    return { v: r.slice(0, k), pts };
+  });
+}
+/* One polyline per class: thousands of segments cost a handful of canvas paths. Higher classes are drawn last. */
+function classLines(lines, classOf, styleOf, renderer) {
+  const groups = new Map();
+  for (const l of lines) { const c = classOf(l); if (c === null) continue; if (!groups.has(c)) groups.set(c, []); groups.get(c).push(l.pts); }
+  return L.layerGroup([...groups.keys()].sort((a, b) => a - b).map(c => L.polyline(groups.get(c), { renderer, interactive: false, ...styleOf(c) })));
+}
 const rampHTML = (ramp = RAMP) => `<span class="ramp">${ramp.map(c => `<span style="background:${c}"></span>`).join("")}</span>`;
 
 function cityLinks(r) {

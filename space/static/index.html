@@ -8,8 +8,7 @@
 <meta name="description" content="The seven work packages of the ELEVATE protocol worked through in Amsterdam, flown over the city in 3D: street images read by open models, synthetic GPS run through the analysis chain, equity across buurten, and an idea for the recommender.">
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="preconnect" href="https://service.pdok.nl">
-<link rel="preconnect" href="https://data.3dbag.nl">
-<link rel="preload" as="image" href="data/home/poster.jpg">
+<link rel="preload" as="image" href="data/home/poster.webp" type="image/webp">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.146.0/Build/Cesium/Widgets/widgets.css">
 <link rel="stylesheet" href="assets/site.css">
 <script>window.CESIUM_BASE_URL = "https://cdn.jsdelivr.net/npm/cesium@1.146.0/Build/Cesium/";</script>
@@ -26,7 +25,8 @@ FIRST VIEWPORT: Full-bleed 3D city slowly turning; title and one-line lead at lo
 FORM: Scroll-driven chapters over a fixed 3D scene (user-pinned: like the gods-eye-view flythrough and alpha-urban's story pages, not a copy), seed: brief-pinned, no roll.
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 -->
-<div id="city" aria-hidden="true"><div class="poster" style="background-image:url(data/home/poster.jpg)"></div><div class="globe" id="globe"></div></div>
+<div id="city" aria-hidden="true"><div class="poster" style="background-image:url(data/home/poster.webp)"></div><div class="globe" id="globe"></div></div>
+<div class="buildcount" id="buildcount" aria-hidden="true">Building the city <span id="buildpct">0</span>%</div>
 <div class="cityveil"></div>
 
 <main class="chapters" data-night-top>
@@ -128,7 +128,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 <nav class="chapdots" aria-label="Chapters">
   <a href="#top" title="Start" data-ch="intro"></a><a href="#wp1" title="WP1" data-ch="wp1"></a><a href="#wp2" title="WP2" data-ch="wp2"></a><a href="#wp3" title="WP3" data-ch="wp3"></a><a href="#wp4" title="WP4" data-ch="wp4"></a><a href="#wp5" title="WP5" data-ch="wp5"></a><a href="#wp6" title="WP6" data-ch="wp6"></a><a href="#wp7" title="WP7" data-ch="wp7"></a>
 </nav>
-<div class="citycredit" id="citycredit">Aerial photo 2025: Beeldmateriaal Nederland via PDOK · Buildings: 3DBAG (TU Delft, 3DGI) · both CC BY 4.0</div>
+<div class="citycredit" id="citycredit">Aerial photo 2025: Beeldmateriaal Nederland via PDOK · Buildings: 3DBAG (TU Delft, 3DGI), re-encoded here · both CC BY 4.0</div>
 
 <div class="after">
   <section class="section">
@@ -153,6 +153,8 @@ const QUOTES = [
   ["What would this street look like with trees?", "Designers"],
   ["Are our streets as good as those elsewhere?", "Residents of low-income buurten"],
 ];
+// the page opens high above the city and comes down to the first chapter while the buildings load
+const OVERVIEW = { lon: 4.8935, lat: 52.3705, range: 16000, heading: 0, pitch: -89 };
 const CH = {
   intro: { view: { lon: 4.8935, lat: 52.3705, range: 4600, heading: 18, pitch: -38 }, orbit: 1.6 },
   wp1: { view: { lon: 4.8735, lat: 52.3825, range: 2900, heading: 150, pitch: -42 }, orbit: 1.2, layers: ["outlines"] },
@@ -213,18 +215,57 @@ document.addEventListener("DOMContentLoaded", () => {
   const boot = async () => {
     if (!window.Cesium || !window.City3D) return setTimeout(boot, 150);
     try {
-      city = await City3D.create("globe", { view: CH.intro.view });
+      const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const opening = !reduced && (!location.hash || location.hash === "#top") && scrollY < innerHeight / 2;
+      city = await City3D.create("globe", { view: opening ? OVERVIEW : CH.intro.view });
       window.city = city;
       const framing = () => (innerWidth > 900 ? city.rig.frame(0.24, 0) : city.rig.frame(0, 0.22));
       framing(); addEventListener("resize", framing);
+      const finishCount = buildCounter();
       await addLayers();
       city.ready.then(() => document.getElementById("city").classList.add("ready"));
-      go(current || "intro", false);
+      // the buildings drop in once every tile in view is in (at most 15 s), in a wave from the middle of the view
+      let risen = false;
+      const riseWhenLoaded = () => {
+        if (risen) return;
+        risen = true;
+        const t0 = performance.now();
+        const wait = () => {
+          if (city.bag && !city.bag.tilesLoaded && performance.now() - t0 < 15000) return setTimeout(wait, 100);
+          const s = city.rig.state;
+          city.rise({ lon: s.lon, lat: s.lat }, { instant: reduced });
+          setTimeout(finishCount, reduced ? 0 : 900);
+        };
+        wait();
+      };
+      if (opening) {
+        await city.ready;
+        await new Promise(r => setTimeout(r, 400));
+        if (!current || current === "intro") {
+          const descent = city.rig.fly(CH.intro.view, { ms: 3600, bump: 0 });
+          descent.then(() => { if (!current || current === "intro") go("intro", false); riseWhenLoaded(); });
+          setTimeout(riseWhenLoaded, 7000);   // if the visitor scrolls on before the descent ends
+        } else { go(current, true); riseWhenLoaded(); }
+      } else { go(current || "intro", false); riseWhenLoaded(); }
     } catch (e) {
       console.error(e);
       document.getElementById("citycredit").textContent = "The 3D city needs WebGL; the work packages work without it. Aerial photo: PDOK, CC BY 4.0.";
     }
   };
+
+  // "Building the city N%": tiles still to load, against the most seen at once; it never counts down
+  function buildCounter() {
+    const el = document.getElementById("buildcount"), pct = document.getElementById("buildpct");
+    let most = 0, shown = 0, finished = false;
+    city.progress.addEventListener(n => {
+      if (finished) return;
+      most = Math.max(most, n);
+      if (most < 4) return;
+      const p = Math.min(99, Math.round(100 * (1 - n / most)));
+      if (p > shown) { shown = p; pct.textContent = shown; }
+    });
+    return () => { if (finished) return; finished = true; pct.textContent = 100; setTimeout(() => el.classList.add("done"), 500); };
+  }
 
   async function addLayers() {
     const C = Cesium;

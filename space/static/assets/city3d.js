@@ -1,5 +1,9 @@
 /* The 3D city behind the home page. CesiumJS with open data only: PDOK 2025 aerial photo
    (Beeldmateriaal Nederland, CC BY 4.0) and 3DBAG LoD2.2 buildings (CC BY 4.0). No Cesium ion.
+   The buildings come from this site: every 3DBAG tile inside the A10 ring, with the attribute tables and the
+   normals removed (a plain per-building id stays, for the drop-in) and the geometry re-encoded with Draco; the
+   empty inner tiles always refine, so every building in the crop is drawn at any distance
+   (scripts/87_3dbag_subset.py --crop --refine-all --no-normals).
    City3D.create(id) -> { viewer, rig, ready }
    rig.fly(view) flies in an arc: it rises while it travels and comes down at the next place.
    City3D.walk(city, data) -> a SYNTHETIC GNSS walk with a chase camera. */
@@ -7,7 +11,7 @@
 
 const City3D = (() => {
   const PDOK = "https://service.pdok.nl/hwh/luchtfotorgb/wmts/v1_0/2025_orthoHR/EPSG:3857/{z}/{x}/{y}.jpeg";
-  const BAG = "https://data.3dbag.nl/v20250903/cesium3dtiles/lod22/tileset.json";
+  const BAG = "data/3dbag/lod22/tileset.json";   // 3DBAG v20250903, A10 crop served from this site
   const GREEN = ["#cfe3dc", "#a6cfc0", "#79b5a2", "#4d9781", "#2b7462", "#174f42"];
   const rad = d => (d * Math.PI) / 180, deg = r => (r * 180) / Math.PI;
   const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
@@ -25,15 +29,18 @@ const City3D = (() => {
     const viewer = new Cesium.Viewer(id, {
       baseLayer: new Cesium.ImageryLayer(new Cesium.UrlTemplateImageryProvider({
         url: PDOK, maximumLevel: 19, credit: "Aerial photo 2025: Beeldmateriaal Nederland via PDOK, CC BY 4.0",
+        // only the Amsterdam region, from zoom 10: no requests for the rest of the world or the coarse levels
+        rectangle: Cesium.Rectangle.fromDegrees(4.60, 52.20, 5.20, 52.55), minimumLevel: 10,
       })),
       baseLayerPicker: false, geocoder: false, homeButton: false, sceneModePicker: false, navigationHelpButton: false,
       animation: false, timeline: false, fullscreenButton: false, infoBox: false, selectionIndicator: false,
       creditContainer: document.createElement("div"), msaaSamples: 4,
+      skyBox: false, skyAtmosphere: false,   // never seen here; saves about 0.75 MB of textures
     });
     const scene = viewer.scene;
     scene.globe.baseColor = Cesium.Color.fromCssColorString("#0c1114");
     scene.backgroundColor = Cesium.Color.fromCssColorString("#0c1114");
-    scene.skyAtmosphere.show = false;
+    scene.sun = undefined; scene.moon = undefined;
     scene.globe.showGroundAtmosphere = false;
     scene.fog.enabled = true; scene.fog.density = 0.00028;
     scene.highDynamicRange = false;
@@ -49,11 +56,45 @@ const City3D = (() => {
       bag = await Cesium.Cesium3DTileset.fromUrl(BAG, { maximumScreenSpaceError: 16, skipLevelOfDetail: true,
         dynamicScreenSpaceError: true, foveatedScreenSpaceError: true });
       bag.customShader = new Cesium.CustomShader({
-        lightingModel: Cesium.LightingModel.PBR,
+        lightingModel: Cesium.LightingModel.UNLIT,
+        // "Building the city": until rise() is called the buildings wait out of sight. Then a wave runs out from the
+        // centre, tile by tile (each tile's own origin, so every vertex of a building agrees), and each building, a
+        // little later than its neighbours (seeded by its id, the tiles' _BUILDING attribute), appears a few hundred
+        // metres up, falls straight down and bounces once as it lands. Once the wave is over (u_done) the vertex
+        // shader does nothing.
+        uniforms: {
+          u_now: { type: Cesium.UniformType.FLOAT, value: 0 },
+          u_start: { type: Cesium.UniformType.FLOAT, value: -1 },
+          u_done: { type: Cesium.UniformType.FLOAT, value: 0 },
+          u_center: { type: Cesium.UniformType.VEC3, value: new Cesium.Cartesian3() },
+        },
+        vertexShaderText: `void vertexMain(VertexInput vsInput, inout czm_modelVertexOutput vsOutput) {
+          if (u_done > 0.5) return;
+          vec3 origin = (czm_model * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+          vec3 up = normalize((czm_inverseModel * vec4(normalize(origin), 0.0)).xyz);   // in the tile's own frame
+          float lift = 60000.0;   // not yet: out of sight
+          if (u_start >= 0.0) {
+            float seed = fract(sin(floor(vsInput.attributes.building + 0.5) * 12.9898 + 78.233) * 43758.5453);
+            float t = (u_now - u_start - distance(origin, u_center) / 2200.0 - seed * 0.8) / 0.7;
+            float h = 220.0 + 200.0 * fract(seed * 3.71);
+            if (t >= 1.0) lift = 0.0;
+            else if (t >= 0.78) lift = 0.06 * h * sin(3.14159265 * (t - 0.78) / 0.22);
+            else if (t >= 0.0) lift = h * (1.0 - (t / 0.78) * (t / 0.78));
+          }
+          vsOutput.positionMC += up * lift;
+        }`,
+        // The tiles carry no normals (walls and roofs are flat): each face's normal comes from the surface itself,
+        // and the light is fixed, a low afternoon sun from the south-west and a soft sky from above.
         fragmentShaderText: `void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
-          float up = clamp(dot(normalize(fsInput.attributes.normalEC), normalize(czm_normal * vec3(0.0, 0.0, 1.0))), 0.0, 1.0);
-          material.diffuse = mix(vec3(0.84, 0.80, 0.74), vec3(0.96, 0.94, 0.90), up);
-          material.roughness = 0.9;
+          vec3 p = fsInput.attributes.positionEC;
+          vec3 n = normalize(cross(dFdx(p), dFdy(p)));
+          vec3 upW = normalize((czm_model * vec4(0.0, 0.0, 0.0, 1.0)).xyz);
+          vec3 eastW = normalize(cross(vec3(0.0, 0.0, 1.0), upW)), northW = cross(upW, eastW);
+          mat3 toEye = mat3(czm_view);
+          vec3 up = normalize(toEye * upW), sun = normalize(toEye * (-0.55 * eastW - 0.55 * northW + 0.62 * upW));
+          float roof = clamp(dot(n, up), 0.0, 1.0);
+          vec3 base = mix(vec3(0.84, 0.80, 0.74), vec3(0.96, 0.94, 0.90), roof);
+          material.diffuse = base * (0.045 + 0.21 * (0.5 + 0.5 * dot(n, up)) + 0.31 * max(dot(n, sun), 0.0));   // linear; shown as sRGB
         }`,
       });
       scene.primitives.add(bag);
@@ -65,12 +106,39 @@ const City3D = (() => {
 
     const rig = makeRig(viewer);
     if (opts.view) rig.set(opts.view);
+    // Show the city early and let it sharpen in view: the first of the imagery being complete, the first
+    // 3DBAG tiles, or 1.2 s (it used to wait for every imagery tile, up to 7 s)
     const ready = new Promise(res => {
-      let waited = 0;
-      const check = () => { if (scene.globe.tilesLoaded || waited > 7000) res(); else { waited += 250; setTimeout(check, 250); } };
+      const t0 = performance.now();
+      let done = false;
+      const go = () => { if (!done) { done = true; res(); } };
+      if (bag) bag.initialTilesLoaded.addEventListener(go);
+      const check = () => { if (done) return; if (scene.globe.tilesLoaded || performance.now() - t0 > 1200) go(); else setTimeout(check, 100); };
       check();
     });
-    return { viewer, scene, bag, rig, ready };
+    // the building wave: rise({lon, lat}) starts it from that point; it lasts until the farthest tile is up
+    let riseEnd = 0;
+    scene.preUpdate.addEventListener(() => {
+      if (!bag || !bag.customShader) return;
+      const now = performance.now() / 1000;
+      bag.customShader.setUniform("u_now", now);
+      if (riseEnd && now > riseEnd) { bag.customShader.setUniform("u_done", 1); riseEnd = 0; }
+    });
+    function rise(at, { instant = false } = {}) {
+      if (!bag || !bag.customShader) return;
+      if (instant) { bag.customShader.setUniform("u_done", 1); return; }
+      const now = performance.now() / 1000;
+      bag.customShader.setUniform("u_center", Cesium.Cartesian3.fromDegrees(at.lon, at.lat, 0));
+      bag.customShader.setUniform("u_start", now);
+      riseEnd = now + 12000 / 2200 + 0.8 + 0.7 + 0.3;   // 12 km of wave, the longest delay, one fall, a margin
+    }
+    // loading progress for the "Building the city" counter: tiles still requested or processed
+    const progress = new Cesium.Event();
+    let pendingBag = 0, pendingGlobe = 0;
+    const emit = () => progress.raiseEvent(pendingBag + pendingGlobe);
+    if (bag) bag.loadProgress.addEventListener((req, proc) => { pendingBag = req + proc; emit(); });
+    scene.globe.tileLoadProgressEvent.addEventListener(n => { pendingGlobe = n; emit(); });
+    return { viewer, scene, bag, rig, ready, rise, progress };
   }
 
   /* Camera rig: the camera always looks at a ground point {lon, lat} from {range, heading, pitch} (degrees). */

@@ -32,6 +32,10 @@ labelled as such wherever it appears.
   - `50`–`52`: WP5 equity analysis and models (`52` is R, glmmTMB).
   - `60`: WP1; `65`: WP4; `70`–`76`: WP6.
   - `80`–`86`: site data, packaging and publishing.
+  - `87`: the 3DBAG buildings the home page serves itself: every LoD2.2 tile inside the A10 ring
+    (`--crop 4.835,52.333,4.955,52.402 --refine-all --no-normals`), attribute tables and normals removed (a plain
+    per-building id stays, for the drop-in), geometry re-encoded with Draco through `tools/gltf/` (Node 24,
+    gltf-transform; `npm install` there first); the empty inner tiles always refine, so every building is drawn.
 - `docs/`: protocol map, data card, licences, evaluation and design notes, one file per topic.
 - `survey/schema.sql`: the pilot survey's PostgreSQL schema (Supabase): insert-only row-level security, constraints, a per-session cap and aggregate-only results.
 - `space/`: the FastAPI back end (`app/`), the website source (`static/`) and the Space's Dockerfile.

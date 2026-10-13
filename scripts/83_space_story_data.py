@@ -181,6 +181,8 @@ def poster():
             img.paste(Image.open(io.BytesIO(r.content)).convert("RGB"), (256 * i, 256 * j))
     (OUT / "home").mkdir(exist_ok=True)
     img.save(OUT / "home/poster.jpg", quality=72, optimize=True, progressive=True)
+    # the page shows the poster darkened behind the title while the 3D city loads: a WebP at 1280 px, quality 60, is enough (226 KB against 543 KB)
+    img.resize((1280, round(img.height * 1280 / img.width)), Image.LANCZOS).save(OUT / "home/poster.webp", quality=60, method=6)
     print("poster", img.size)
 
 

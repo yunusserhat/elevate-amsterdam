@@ -180,11 +180,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   let segsP = null;
-  const loadSegs = () => segsP || (segsP = getJSON("data/layers/segments.geojson").then(g => {
-    const br = quantileBreaks(g.features.map(f => f.properties.green_view));
-    groups.green = L.geoJSON(g, { renderer, style: f => ({ color: rampColour(f.properties.green_view, br) || "#c9d1d6", weight: 2.4, opacity: 1 }) });
-    const bw = quantileBreaks(g.features.map(f => f.properties.perceived_walkable).filter(v => v != null));
-    groups.walk = L.geoJSON(g, { renderer, style: f => ({ color: rampColour(f.properties.perceived_walkable, bw) || "#c9d1d6", weight: 2.4, opacity: 1 }) });
+  const loadSegs = () => segsP || (segsP = getJSON("data/layers/segments_lite.json").then(d => {
+    const lines = decodeLines(d);
+    const ramped = key => {
+      const i = d.keys.indexOf(key), br = quantileBreaks(lines.map(l => l.v[i]));
+      return classLines(lines, l => (l.v[i] === null ? -1 : rampIndex(l.v[i], br)), c => ({ color: c < 0 ? "#c9d1d6" : RAMP[c], weight: 2.4, opacity: 1 }), renderer);
+    };
+    groups.green = ramped("green_view");
+    groups.walk = ramped("perceived_walkable");
   }));
   // step 7: green view or the team's walkability, one segmented control
   let segLayer = "green";

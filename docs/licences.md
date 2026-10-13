@@ -1,10 +1,10 @@
-# Licences and attribution (checked 2026-10-10; 3D sources added 2026-10-11; perception model 2026-10-12)
+# Licences and attribution (checked 2026-10-10; 3D sources added 2026-10-11; perception model 2026-10-12; 3DBAG subset 2026-10-13)
 
 | Material | Licence | Use here | Attribution / conditions |
 |---|---|---|---|
 | City of Amsterdam panoramas ("Kernregistratie Panoramabeelden", api.data.amsterdam.nl/panorama) | CC BY 4.0 (data.overheid.nl dataset page) | main imagery, 2025 recordings; cube faces downloaded for analysis | "Panoramas: Gemeente Amsterdam, CC BY 4.0". Link images to the city's panorama viewer; show only a curated few on the site. |
 | PDOK Luchtfoto 2025 orthoHR (Beeldmateriaal Nederland, WMTS) | CC BY 4.0 | ground of the home page's 3D city; aerial poster image | "Aerial photo 2025: Beeldmateriaal Nederland via PDOK, CC BY 4.0"; shown with the 3D view and in the footer |
-| 3DBAG v20250903, LoD2.2 3D Tiles (TU Delft 3D geoinformation group and 3DGI) | CC BY 4.0 | buildings of the home page's 3D city | "3DBAG by the 3D geoinformation research group (TU Delft) and 3DGI", link to the licence; changes indicated: recoloured, lowered 43 m to the ellipsoid |
+| 3DBAG v20250903, LoD2.2 3D Tiles (TU Delft 3D geoinformation group and 3DGI) | CC BY 4.0 | buildings of the home page's 3D city | "3DBAG by the 3D geoinformation research group (TU Delft) and 3DGI", link to the licence; changes indicated: recoloured, relit, lowered 43 m to the ellipsoid; since 2026-10-13 the site serves its own crop (the 106 tiles touching the A10 ring, 4.835-4.955 E, 52.333-52.402 N): attribute tables and normals removed (a plain per-building id kept), geometry re-encoded with Draco, the page lights the faces itself (scripts/87_3dbag_subset.py --crop --refine-all --no-normals); the credit line says "re-encoded here" |
 | OpenStreetMap | ODbL 1.0 | street network, POIs, basemap | "© OpenStreetMap contributors (ODbL)" |
 | CBS Wijk- en Buurtkaart 2023 (PDOK WFS) | CC0 1.0 (PDOK service AccessConstraints) | buurt boundaries, density, income (2023 is the latest edition with income filled; 2024 has income still empty) | cite CBS / PDOK; values suppressed by CBS for small buurten stay missing |
 | CBS StatLine 85618NED, Kerncijfers wijken en buurten 2023 (OData API) | CC BY 4.0 (cbs.nl copyright page) | income measures for WP5 equity (more complete and newer than the PDOK copy) | "Source: Statistics Netherlands (CBS)" |
